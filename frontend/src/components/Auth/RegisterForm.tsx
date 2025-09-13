@@ -79,8 +79,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       try {
         await register(formData);
         // Navigation will be handled by the protected route logic
-      } catch (error: any) {
-        setErrors({ general: error.message || 'Registration failed' });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+        setErrors({ general: errorMessage });
       }
     }
   };
@@ -104,7 +105,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     }
   };
 
-  const inputStyle = (hasError: boolean) => ({
+  const inputStyle = (hasError: boolean): React.CSSProperties => ({
     width: '100%',
     padding: '12px',
     border: `1px solid ${hasError ? '#ef4444' : '#d1d5db'}`,
@@ -113,10 +114,10 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     outline: 'none',
     backgroundColor: 'white',
     color: '#111827',
-    boxSizing: 'border-box' as const
+    boxSizing: 'border-box'
   });
 
-  const labelStyle = {
+  const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: '14px',
     fontWeight: '500',
@@ -124,12 +125,12 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     marginBottom: '8px'
   };
 
-  const fieldStyle = {
+  const fieldStyle: React.CSSProperties = {
     marginBottom: '16px'
   };
 
-  const eyeButtonStyle = {
-    position: 'absolute' as const,
+  const eyeButtonStyle: React.CSSProperties = {
+    position: 'absolute',
     right: '12px',
     top: '50%',
     transform: 'translateY(-50%)',
@@ -143,14 +144,14 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     padding: '4px'
   };
 
-  const errorTextStyle = {
+  const errorTextStyle: React.CSSProperties = {
     color: '#dc2626',
     fontSize: '14px',
     marginTop: '4px',
     margin: '4px 0 0 0'
   };
 
-  const submitButtonStyle = {
+  const submitButtonStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px',
     borderRadius: '8px',
@@ -159,7 +160,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     border: 'none',
     cursor: isLoading ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s',
-    boxSizing: 'border-box' as const,
+    boxSizing: 'border-box',
     backgroundColor: isLoading ? '#9ca3af' : '#A9DEF9',
     color: 'black'
   };

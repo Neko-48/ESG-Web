@@ -32,4 +32,5 @@ export interface CreateProjectFormData {
   environmental_data: string;
   social_data: string;
   governance_data: string;
+  [key: string]: string; 
 }

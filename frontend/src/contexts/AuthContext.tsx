@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { User, LoginFormData, RegisterFormData, AuthContextType } from '../types/authType';
 import { apiRequest } from '../services/apiService';
 
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userData = localStorage.getItem('user_data');
 
         if (token && userData) {
-          const user = JSON.parse(userData);
+          const user = JSON.parse(userData) as User;
           dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
         }
       } catch (error) {
@@ -81,11 +81,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkExistingAuth();
   }, []);
 
-  const login = async (credentials: LoginFormData) => {
+  const login = async (credentials: LoginFormData): Promise<void> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await apiRequest<{ user: User; token: string }>('POST', '/auth/login', credentials);
+      const response = await apiRequest<{ user: User; token: string }>('POST', '/auth/login', credentials as Record<string, unknown>);
       
       if (response.success && response.data) {
         const { user, token } = response.data;
@@ -97,18 +97,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Login failed');
       }
-    } catch (error: any) {
+    } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unexpected error occurred during login');
     }
   };
 
-  const register = async (userData: RegisterFormData) => {
+  const register = async (userData: RegisterFormData): Promise<void> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = userData;
-      const response = await apiRequest<{ user: User; token: string }>('POST', '/auth/register', registerData);
+      const response = await apiRequest<{ user: User; token: string }>('POST', '/auth/register', registerData as Record<string, unknown>);
       
       if (response.success && response.data) {
         const { user, token } = response.data;
@@ -120,9 +124,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Registration failed');
       }
-    } catch (error: any) {
+    } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unexpected error occurred during registration');
     }
   };
 

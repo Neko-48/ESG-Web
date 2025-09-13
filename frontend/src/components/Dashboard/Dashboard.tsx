@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { Project } from '../../types/projectType';
 import { apiRequest } from '../../services/apiService';
 import ProjectCard from './ProjectCard';
+import CreateProjectForm from './CreateProjectForm';
 import { Plus, LogOut, User } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -22,7 +23,7 @@ const Dashboard: React.FC = () => {
       if (response.success && response.data) {
         setProjects(response.data);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch projects:', error);
     } finally {
       setIsLoading(false);
@@ -170,8 +171,5 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
-
-// Import CreateProjectForm component
-import CreateProjectForm from './CreateProjectForm';
 
 export default Dashboard;
