@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface LoginFormData {
   email: string;
@@ -15,6 +16,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
+  const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: ""
@@ -38,14 +40,19 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     return newErrors;
   };
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
     const newErrors = validateForm();
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
-      console.log("Login successful", formData);
+      try {
+        await login(formData);
+        // Navigation will be handled by the protected route logic
+      } catch (error: any) {
+        setErrors({ general: error.message || 'Login failed' });
+      }
     }
   };
 
@@ -55,6 +62,14 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        return newErrors;
+      });
+    }
+    // Clear general error when user starts typing
+    if (errors.general) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.general;
         return newErrors;
       });
     }
@@ -106,6 +121,20 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     margin: '4px 0 0 0'
   };
 
+  const submitButtonStyle = {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    fontSize: '18px',
+    fontWeight: '500',
+    border: 'none',
+    cursor: isLoading ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s',
+    boxSizing: 'border-box' as const,
+    backgroundColor: isLoading ? '#9ca3af' : '#A9DEF9',
+    color: 'black'
+  };
+
   return (
     <>
       <h2 style={{ 
@@ -119,6 +148,20 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         Log In
       </h2>
       
+      {errors.general && (
+        <div style={{
+          padding: '12px',
+          marginBottom: '16px',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#dc2626',
+          fontSize: '14px'
+        }}>
+          {errors.general}
+        </div>
+      )}
+      
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={fieldStyle}>
           <label style={labelStyle}>Email</label>
@@ -128,6 +171,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             style={inputStyle(!!errors.email)}
+            disabled={isLoading}
           />
           {errors.email && (
             <p style={errorTextStyle}>{errors.email}</p>
@@ -143,11 +187,13 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               style={inputStyle(!!errors.password)}
+              disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={eyeButtonStyle}
+              disabled={isLoading}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -171,6 +217,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
               padding: '0',
               fontSize: 'inherit'
             }}
+            disabled={isLoading}
           >
             Register
           </button>
@@ -179,21 +226,10 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          style={{
-            width: '100%',
-            padding: '12px',
-            borderRadius: '8px',
-            fontSize: '18px',
-            fontWeight: '500',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            boxSizing: 'border-box',
-            backgroundColor: '#A9DEF9',
-            color: 'black'
-          }}
+          style={submitButtonStyle}
+          disabled={isLoading}
         >
-          Log In
+          {isLoading ? 'Logging in...' : 'Log In'}
         </button>
       </div>
     </>

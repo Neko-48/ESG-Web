@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface RegisterFormData {
   firstName: string;
@@ -18,6 +19,7 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
+  const { register, isLoading } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     firstName: "",
     lastName: "",
@@ -67,14 +69,19 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     return newErrors;
   };
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
     const newErrors = validateForm();
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
-      console.log("Registration successful", formData);
+      try {
+        await register(formData);
+        // Navigation will be handled by the protected route logic
+      } catch (error: any) {
+        setErrors({ general: error.message || 'Registration failed' });
+      }
     }
   };
 
@@ -87,8 +94,17 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         return newErrors;
       });
     }
+    // Clear general error when user starts typing
+    if (errors.general) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.general;
+        return newErrors;
+      });
+    }
   };
-    const inputStyle = (hasError: boolean) => ({
+
+  const inputStyle = (hasError: boolean) => ({
     width: '100%',
     padding: '12px',
     border: `1px solid ${hasError ? '#ef4444' : '#d1d5db'}`,
@@ -134,6 +150,20 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     margin: '4px 0 0 0'
   };
 
+  const submitButtonStyle = {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    fontSize: '18px',
+    fontWeight: '500',
+    border: 'none',
+    cursor: isLoading ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s',
+    boxSizing: 'border-box' as const,
+    backgroundColor: isLoading ? '#9ca3af' : '#A9DEF9',
+    color: 'black'
+  };
+
   return (
     <>
       <h2 style={{ 
@@ -147,6 +177,20 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         Register
       </h2>
       
+      {errors.general && (
+        <div style={{
+          padding: '12px',
+          marginBottom: '16px',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#dc2626',
+          fontSize: '14px'
+        }}>
+          {errors.general}
+        </div>
+      )}
+      
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={fieldStyle}>
           <label style={labelStyle}>First name</label>
@@ -156,6 +200,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             value={formData.firstName}
             onChange={(e) => handleInputChange('firstName', e.target.value)}
             style={inputStyle(!!errors.firstName)}
+            disabled={isLoading}
           />
           {errors.firstName && (
             <p style={errorTextStyle}>{errors.firstName}</p>
@@ -170,6 +215,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             value={formData.lastName}
             onChange={(e) => handleInputChange('lastName', e.target.value)}
             style={inputStyle(!!errors.lastName)}
+            disabled={isLoading}
           />
           {errors.lastName && (
             <p style={errorTextStyle}>{errors.lastName}</p>
@@ -184,6 +230,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             style={inputStyle(!!errors.email)}
+            disabled={isLoading}
           />
           {errors.email && (
             <p style={errorTextStyle}>{errors.email}</p>
@@ -210,6 +257,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                 textDecoration: 'underline',
                 padding: '0'
               }}
+              disabled={isLoading}
             >
               Show info
             </button>
@@ -222,11 +270,13 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               style={inputStyle(!!errors.password)}
+              disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={eyeButtonStyle}
+              disabled={isLoading}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -271,11 +321,13 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
               value={formData.confirmPassword}
               onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
               style={inputStyle(!!errors.confirmPassword)}
+              disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               style={eyeButtonStyle}
+              disabled={isLoading}
             >
               {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -299,6 +351,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
               padding: '0',
               fontSize: 'inherit'
             }}
+            disabled={isLoading}
           >
             Log In
           </button>
@@ -307,21 +360,10 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          style={{
-            width: '100%',
-            padding: '12px',
-            borderRadius: '8px',
-            fontSize: '18px',
-            fontWeight: '500',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            boxSizing: 'border-box',
-            backgroundColor: '#A9DEF9',
-            color: 'black'
-          }}
+          style={submitButtonStyle}
+          disabled={isLoading}
         >
-          Register
+          {isLoading ? 'Creating Account...' : 'Register'}
         </button>
       </div>
     </>
