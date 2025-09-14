@@ -6,7 +6,7 @@ export interface Project {
   environmental_data: string;
   social_data: string;
   governance_data: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PASSED' | 'FAILED';
   created_at: string;
   updated_at: string;
   evaluation?: ProjectEvaluation;
