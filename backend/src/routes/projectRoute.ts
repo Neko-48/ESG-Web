@@ -8,6 +8,10 @@ const router = Router();
 // All project routes require authentication
 router.use(authMiddleware);
 
+// Get key issues for form building
+router.get('/key-issues', ProjectController.getKeyIssues);
+
+// Project CRUD operations
 router.post('/', validateProject, handleValidation, ProjectController.createProject);
 router.get('/', ProjectController.getProjects);
 router.get('/:id', ProjectController.getProjectById);

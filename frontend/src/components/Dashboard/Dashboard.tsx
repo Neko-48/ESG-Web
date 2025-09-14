@@ -42,7 +42,8 @@ const Dashboard: React.FC = () => {
 
   // Filter projects based on search query
   const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.industry.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -163,6 +164,39 @@ const Dashboard: React.FC = () => {
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
   };
 
+  const statsStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px',
+    marginBottom: '32px'
+  };
+
+  const statCardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e5e7eb'
+  };
+
+  const statValueStyle: React.CSSProperties = {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#1f2937',
+    margin: '0 0 4px 0'
+  };
+
+  const statLabelStyle: React.CSSProperties = {
+    fontSize: '14px',
+    color: '#6b7280',
+    margin: '0'
+  };
+
+  // Calculate statistics
+  const totalProjects = projects.length;
+  const passedProjects = projects.filter(p => p.evaluation?.status === 'PASSED').length;
+  const failedProjects = projects.filter(p => p.evaluation?.status === 'FAILED').length;
+
   if (showCreateForm) {
     return <CreateProjectForm onProjectCreated={handleProjectCreated} onCancel={() => setShowCreateForm(false)} />;
   }
@@ -191,7 +225,23 @@ const Dashboard: React.FC = () => {
       {/* Content */}
       <div style={contentStyle}>
         {/* Main Title */}
-        <h1 style={titleStyle}>ESG Project</h1>
+        <h1 style={titleStyle}>ESG Projects</h1>
+
+        {/* Statistics */}
+        <div style={statsStyle}>
+          <div style={statCardStyle}>
+            <h3 style={statValueStyle}>{totalProjects}</h3>
+            <p style={statLabelStyle}>Total Projects</p>
+          </div>
+          <div style={statCardStyle}>
+            <h3 style={{...statValueStyle, color: '#10b981'}}>{passedProjects}</h3>
+            <p style={statLabelStyle}>Passed Evaluations</p>
+          </div>
+          <div style={statCardStyle}>
+            <h3 style={{...statValueStyle, color: '#ef4444'}}>{failedProjects}</h3>
+            <p style={statLabelStyle}>Failed Evaluations</p>
+          </div>
+        </div>
 
         {/* Search Bar */}
         <div style={searchContainerStyle}>
@@ -219,7 +269,22 @@ const Dashboard: React.FC = () => {
         {/* Projects Content */}
         {isLoading ? (
           <div style={emptyStateStyle}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f4f6',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px'
+            }} />
             <p style={{ fontSize: '18px', color: '#6b7280', margin: '0' }}>Loading projects...</p>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         ) : filteredProjects.length === 0 && searchQuery ? (
           <div style={emptyStateStyle}>

@@ -26,51 +26,69 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
     window.location.href = `/project/${project.project_id}`;
   };
 
-  // Updated status icons for 3 states: PENDING, PASSED, FAILED
+  // Map project status to display status
+  const getDisplayStatus = () => {
+    if (!project.evaluation) {
+      return project.status; // PENDING, PROCESSING, or COMPLETED without evaluation
+    }
+    return project.evaluation.status; // PASSED or FAILED from evaluation
+  };
+
   const getStatusIcon = () => {
-    switch (project.status) {
+    const status = getDisplayStatus();
+    switch (status) {
       case 'PENDING':
+      case 'PROCESSING':
         return <Clock size={16} color="#f59e0b" />;
       case 'PASSED':
         return <CheckCircle size={16} color="#10b981" />;
       case 'FAILED':
         return <XCircle size={16} color="#ef4444" />;
+      case 'COMPLETED':
+        return <CheckCircle size={16} color="#6b7280" />;
       default:
         return <Clock size={16} color="#6b7280" />;
     }
   };
 
   const getStatusColor = () => {
-    switch (project.status) {
+    const status = getDisplayStatus();
+    switch (status) {
       case 'PENDING':
+      case 'PROCESSING':
         return '#f59e0b';
       case 'PASSED':
         return '#10b981';
       case 'FAILED':
         return '#ef4444';
+      case 'COMPLETED':
+        return '#6b7280';
       default:
         return '#6b7280';
     }
   };
 
   const getStatusBackgroundColor = () => {
-    switch (project.status) {
+    const status = getDisplayStatus();
+    switch (status) {
       case 'PENDING':
+      case 'PROCESSING':
         return '#fef3c7';
       case 'PASSED':
         return '#dcfce7';
       case 'FAILED':
         return '#fee2e2';
+      case 'COMPLETED':
+        return '#f3f4f6';
       default:
         return '#f3f4f6';
     }
   };
 
-  // Determine PASS/FAIL from status directly
   const getPassFailBadge = () => {
-    if (project.status === 'PENDING') return null;
+    if (!project.evaluation || project.evaluation.status === 'PENDING') return null;
     
-    const isPass = project.status === 'PASSED';
+    const isPass = project.evaluation.status === 'PASSED';
     const badgeStyle: React.CSSProperties = {
       display: 'inline-flex',
       alignItems: 'center',
@@ -214,8 +232,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: project.status === 'PENDING' ? 1 : 0,
-    visibility: project.status === 'PENDING' ? 'visible' : 'hidden',
+    opacity: project.status === 'PENDING' || project.status === 'PROCESSING' ? 1 : 0,
+    visibility: project.status === 'PENDING' || project.status === 'PROCESSING' ? 'visible' : 'hidden',
     transition: 'all 0.2s'
   };
 
@@ -234,24 +252,45 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
     margin: '0 auto 12px'
   };
 
+  // Get pillar scores from evaluation
+  const getPillarScores = () => {
+    if (!project.evaluation?.pillar_scores) return null;
+    
+    const scores = project.evaluation.pillar_scores;
+    const envScore = scores.find(s => s.pillar_type === 'E')?.score || 0;
+    const socScore = scores.find(s => s.pillar_type === 'S')?.score || 0;
+    const govScore = scores.find(s => s.pillar_type === 'G')?.score || 0;
+    
+    return { envScore, socScore, govScore };
+  };
+
+  const pillarScores = getPillarScores();
+
   return (
     <div style={cardStyle} onClick={handleViewDetails}>
       <div style={headerStyle}>
         <div style={{ flex: 1 }}>
           <h3 style={titleStyle}>{project.project_name}</h3>
           <p style={industryStyle}>{project.industry}</p>
+          {project.description && (
+            <p style={{...industryStyle, marginTop: '4px', fontSize: '12px'}}>
+              {project.description.length > 100 ? 
+                `${project.description.substring(0, 100)}...` : 
+                project.description}
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
           <div style={statusBadgeStyle}>
             {getStatusIcon()}
-            {project.status}
+            {getDisplayStatus()}
           </div>
           {getPassFailBadge()}
         </div>
       </div>
 
-      {/* Show evaluation scores only if status is PASSED or FAILED */}
-      {project.evaluation && (project.status === 'PASSED' || project.status === 'FAILED') && (
+      {/* Show evaluation scores only if evaluation exists and has pillar scores */}
+      {project.evaluation && pillarScores && (project.evaluation.status === 'PASSED' || project.evaluation.status === 'FAILED') && (
         <div style={scoresSectionStyle}>
           <p style={{ fontSize: '12px', fontWeight: '500', color: '#374151', margin: '0 0 8px 0' }}>
             ESG Scores
@@ -259,15 +298,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
           <div style={scoresGridStyle}>
             <div style={scoreItemStyle}>
               <p style={scoreLabelStyle}>ENV</p>
-              <p style={scoreValueStyle}>{project.evaluation.environmental_score.toFixed(1)}</p>
+              <p style={scoreValueStyle}>{pillarScores.envScore.toFixed(1)}</p>
             </div>
             <div style={scoreItemStyle}>
               <p style={scoreLabelStyle}>SOC</p>
-              <p style={scoreValueStyle}>{project.evaluation.social_score.toFixed(1)}</p>
+              <p style={scoreValueStyle}>{pillarScores.socScore.toFixed(1)}</p>
             </div>
             <div style={scoreItemStyle}>
               <p style={scoreLabelStyle}>GOV</p>
-              <p style={scoreValueStyle}>{project.evaluation.governance_score.toFixed(1)}</p>
+              <p style={scoreValueStyle}>{pillarScores.govScore.toFixed(1)}</p>
             </div>
             <div style={scoreItemStyle}>
               <p style={scoreLabelStyle}>TOTAL</p>
@@ -278,7 +317,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
       )}
 
       <div style={dateStyle}>
-        Created: {new Date(project.created_at).toLocaleDateString()}
+        Created: {new Date(project.submitted_at).toLocaleDateString()}
       </div>
 
       <div 
@@ -288,7 +327,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
         <button 
           style={viewButtonStyle} 
           onClick={handleViewDetails}
-          disabled={project.status === 'PENDING'}
+          disabled={project.status === 'PENDING' || project.status === 'PROCESSING'}
         >
           <Eye size={14} />
           View Details
@@ -298,12 +337,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onUpdate }) => {
         </button>
       </div>
 
-      {/* Pending Overlay */}
+      {/* Pending/Processing Overlay */}
       <div style={pendingOverlayStyle}>
         <div style={pendingMessageStyle}>
           <div style={spinnerStyle} />
           <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 8px 0' }}>
-            Processing...
+            {project.status === 'PROCESSING' ? 'Processing...' : 'Pending...'}
           </h4>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: '0' }}>
             Your project is being evaluated

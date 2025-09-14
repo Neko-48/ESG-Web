@@ -9,11 +9,18 @@ export class ProjectController {
       const projectData: CreateProjectRequest = req.body;
       
       // Basic validation
-      const { project_name, industry, environmental_data, social_data, governance_data } = projectData;
+      const { project_name, industry, project_data } = projectData;
       if (!project_name || !industry) {
         return res.status(400).json({ 
           success: false, 
           message: 'Project name and industry are required' 
+        });
+      }
+
+      if (!project_data || project_data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Project data is required'
         });
       }
 
@@ -118,6 +125,23 @@ export class ProjectController {
       res.status(500).json({
         success: false,
         message: 'Failed to delete project'
+      });
+    }
+  }
+
+  static async getKeyIssues(req: Request, res: Response) {
+    try {
+      const keyIssues = await ProjectService.getKeyIssues();
+      
+      res.status(200).json({
+        success: true,
+        data: keyIssues
+      });
+    } catch (error) {
+      console.error('Get key issues error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get key issues'
       });
     }
   }
