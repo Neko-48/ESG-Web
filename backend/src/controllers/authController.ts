@@ -23,6 +23,15 @@ export class AuthController {
         });
       }
 
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Please enter a valid email address' 
+        });
+      }
+
       const result = await AuthService.register(userData);
       
       res.status(201).json({
@@ -32,9 +41,20 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Registration error:', error);
+      
+      // Handle specific error messages
+      let errorMessage = 'Registration failed';
+      if (error instanceof Error) {
+        if (error.message.includes('already exists')) {
+          errorMessage = 'An account with this email already exists';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       res.status(400).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Registration failed'
+        message: errorMessage
       });
     }
   }
@@ -51,6 +71,15 @@ export class AuthController {
         });
       }
 
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Please enter a valid email address' 
+        });
+      }
+
       const result = await AuthService.login(credentials);
       
       res.status(200).json({
@@ -60,9 +89,24 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(401).json({
+      
+      // Handle specific error messages
+      let errorMessage = 'Login failed';
+      let statusCode = 401;
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid email or password')) {
+          errorMessage = 'Invalid email or password. Please check your credentials.';
+        } else if (error.message.includes('User not found')) {
+          errorMessage = 'No account found with this email address.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      res.status(statusCode).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Login failed'
+        message: errorMessage
       });
     }
   }

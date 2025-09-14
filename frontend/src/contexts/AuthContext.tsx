@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { User, LoginFormData, RegisterFormData, AuthContextType } from '../types/authType';
+import type { ApiResponse } from '../types/apiType';
 import { apiRequest } from '../services/apiService';
 
 interface AuthState {
@@ -14,6 +15,15 @@ type AuthAction =
   | { type: 'LOGIN_SUCCESS'; payload: { user: User; token: string } }
   | { type: 'LOGOUT' }
   | { type: 'SET_USER'; payload: User };
+
+interface AuthError extends Error {
+  success?: boolean;
+  response?: {
+    data: {
+      message: string;
+    };
+  };
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -60,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check for existing auth on mount
   useEffect(() => {
-    const checkExistingAuth = async () => {
+    const checkExistingAuth = async (): Promise<void> => {
       try {
         const token = localStorage.getItem('auth_token');
         const userData = localStorage.getItem('user_data');
@@ -97,12 +107,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Login failed');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       dispatch({ type: 'SET_LOADING', payload: false });
-      if (error instanceof Error) {
-        throw error;
+      
+      // Handle different error types
+      const authError = error as AuthError | ApiResponse<never>;
+      
+      if ('success' in authError && authError.success === false) {
+        // This is an API response error
+        throw new Error(authError.message || 'Login failed');
+      } else if ('response' in authError && authError.response?.data) {
+        // This is an axios error with response data
+        throw new Error(authError.response.data.message || 'Login failed');
+      } else if (authError instanceof Error) {
+        // This is a regular Error object
+        throw authError;
+      } else {
+        // Unknown error type
+        throw new Error('An unexpected error occurred during login');
       }
-      throw new Error('An unexpected error occurred during login');
     }
   };
 
@@ -124,16 +147,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Registration failed');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       dispatch({ type: 'SET_LOADING', payload: false });
-      if (error instanceof Error) {
-        throw error;
+      
+      // Handle different error types
+      const authError = error as AuthError | ApiResponse<never>;
+      
+      if ('success' in authError && authError.success === false) {
+        // This is an API response error
+        throw new Error(authError.message || 'Registration failed');
+      } else if ('response' in authError && authError.response?.data) {
+        // This is an axios error with response data
+        throw new Error(authError.response.data.message || 'Registration failed');
+      } else if (authError instanceof Error) {
+        // This is a regular Error object
+        throw authError;
+      } else {
+        // Unknown error type
+        throw new Error('An unexpected error occurred during registration');
       }
-      throw new Error('An unexpected error occurred during registration');
     }
   };
 
-  const logout = () => {
+  const logout = (): void => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     dispatch({ type: 'LOGOUT' });

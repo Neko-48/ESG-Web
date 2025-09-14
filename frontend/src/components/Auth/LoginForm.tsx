@@ -15,6 +15,14 @@ interface LoginFormProps {
   onSwitchToRegister: () => void;
 }
 
+interface AuthError extends Error {
+  response?: {
+    data: {
+      message: string;
+    };
+  };
+}
+
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
@@ -28,19 +36,19 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     const newErrors: FormErrors = {};
     
     if (!formData.email.trim()) {
-      newErrors.email = "กรุณากรอกอีเมล";
+      newErrors.email = "Please enter your email address";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
+      newErrors.email = "Please enter a valid email address";
     }
     
     if (!formData.password) {
-      newErrors.password = "กรุณากรอกรหัสผ่าน";
+      newErrors.password = "Please enter your password";
     }
     
     return newErrors;
   };
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>): Promise<void> => {
     e.preventDefault();
     
     const newErrors = validateForm();
@@ -50,14 +58,26 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       try {
         await login(formData);
         // Navigation will be handled by the protected route logic
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      } catch (error: unknown) {
+        console.error('Login error:', error);
+        
+        let errorMessage = 'Login failed. Please try again.';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else {
+          const authError = error as AuthError;
+          if (authError?.response?.data?.message) {
+            errorMessage = authError.response.data.message;
+          }
+        }
+        
         setErrors({ general: errorMessage });
       }
     }
   };
 
-  const handleInputChange = (field: keyof LoginFormData, value: string) => {
+  const handleInputChange = (field: keyof LoginFormData, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => {
@@ -133,7 +153,8 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     transition: 'all 0.2s',
     boxSizing: 'border-box',
     backgroundColor: isLoading ? '#9ca3af' : '#A9DEF9',
-    color: 'black'
+    color: 'black',
+    opacity: isLoading ? 0.7 : 1
   };
 
   return (

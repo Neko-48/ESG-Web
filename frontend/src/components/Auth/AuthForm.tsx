@@ -15,22 +15,26 @@ export default function AuthForm() {
     bottom: 0,
     width: '100vw',
     height: '100vh',
+    minHeight: '100vh',
     backgroundColor: '#f3f4f6',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '16px',
+    padding: '20px',
     margin: 0,
-    overflow: 'auto'
+    overflow: 'auto',
+    boxSizing: 'border-box' as const
   };
 
   const cardStyle = {
     backgroundColor: 'white',
-    padding: '32px',
+    padding: '40px',
     borderRadius: '12px',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    width: '384px',
-    maxWidth: '100%'
+    width: '100%',
+    maxWidth: '400px',
+    minWidth: '320px',
+    boxSizing: 'border-box' as const
   };
 
   return (

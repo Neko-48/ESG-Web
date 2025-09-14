@@ -18,7 +18,6 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -36,15 +35,15 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 
-// Handle 404 routes
-app.use('*', (req, res) => {
+// 404 handler (แก้ไขตรงนี้)
+app.all('*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found'
   });
 });
 
-// Error handling middleware (must be last)
+// Error handling middleware
 app.use(errorHandler);
 
 export default app;

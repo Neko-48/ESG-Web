@@ -16,7 +16,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await query(
       "SELECT user_id FROM users WHERE email = $1",
-      [email]
+      [email.toLowerCase().trim()]
     );
 
     if (existingUser.rows.length > 0) {
@@ -29,10 +29,10 @@ export class AuthService {
 
     // Insert new user
     const result = await query(
-      `INSERT INTO users (email, first_name, last_name, password_hash) 
-       VALUES ($1, $2, $3, $4) 
+      `INSERT INTO users (email, first_name, last_name, password_hash, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, NOW(), NOW()) 
        RETURNING user_id, email, first_name, last_name, created_at`,
-      [email, firstName, lastName, password_hash]
+      [email.toLowerCase().trim(), firstName.trim(), lastName.trim(), password_hash]
     );
 
     const user = result.rows[0];
@@ -44,7 +44,7 @@ export class AuthService {
 
     const payload = { userId: user.user_id, email: user.email };
     const secret: jwt.Secret = process.env.JWT_SECRET;
-    const expiresIn: StringValue = (process.env.JWT_EXPIRES_IN ||"7d") as StringValue;
+    const expiresIn: StringValue = (process.env.JWT_EXPIRES_IN || "7d") as StringValue;
     const options: SignOptions = { expiresIn };
     const token = jwt.sign(payload, secret, options);
 
@@ -62,14 +62,14 @@ export class AuthService {
   static async login(credentials: LoginRequest): Promise<AuthResponse> {
     const { email, password } = credentials;
 
-    // Find user by email
+    // Find user by email (case insensitive)
     const result = await query(
-      "SELECT user_id, email, first_name, last_name, password_hash FROM users WHERE email = $1",
-      [email]
+      "SELECT user_id, email, first_name, last_name, password_hash FROM users WHERE LOWER(email) = LOWER($1)",
+      [email.trim()]
     );
 
     if (result.rows.length === 0) {
-      throw new Error("Invalid email or password");
+      throw new Error("No account found with this email address");
     }
 
     const user = result.rows[0];
@@ -87,7 +87,7 @@ export class AuthService {
 
     const payload = { userId: user.user_id, email: user.email };
     const secret: jwt.Secret = process.env.JWT_SECRET;
-    const expiresIn: StringValue = (process.env.JWT_EXPIRES_IN ||"7d") as StringValue;
+    const expiresIn: StringValue = (process.env.JWT_EXPIRES_IN || "7d") as StringValue;
     const options: SignOptions = { expiresIn };
     const token = jwt.sign(payload, secret, options);
 
