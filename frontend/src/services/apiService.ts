@@ -1,70 +1,92 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '../types/apiType';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-// Create axios instance
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// Custom error class for API errors
+export class ApiError extends Error {
+  public readonly statusCode: number;
+  public readonly success: boolean;
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('auth_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
+  constructor(message: string, statusCode: number = 500) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.success = false;
   }
-);
+}
 
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error: AxiosError) => {
-    // Handle token expiration
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      window.location.href = '/auth';
-    }
-    
-    return Promise.reject(error);
-  }
-);
-
-// Generic API request function
 export const apiRequest = async <T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   endpoint: string,
   data?: Record<string, unknown>
 ): Promise<ApiResponse<T>> => {
+  const token = localStorage.getItem('auth_token');
+  
+  const config: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  };
+
+  if (data && (method === 'POST' || method === 'PUT')) {
+    config.body = JSON.stringify(data);
+  }
+
   try {
-    const response = await api.request({
-      method,
-      url: endpoint,
-      data,
-    });
+    console.log(`Making ${method} request to: ${API_BASE_URL}${endpoint}`);
+    if (data) {
+      console.log('Request data:', { ...data, password: data.password ? '***' : undefined });
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
-    return response.data as ApiResponse<T>;
+    let responseData: ApiResponse<T>;
+    
+    try {
+      responseData = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse response JSON:', parseError);
+      throw new ApiError('Invalid response from server', response.status);
+    }
+
+    console.log('API Response:', {
+      status: response.status,
+      success: responseData.success,
+      message: responseData.message
+    });
+
+    // Check if the response was successful
+    if (!response.ok) {
+      // Server returned an error status code
+      const errorMessage = responseData.message || `HTTP Error ${response.status}`;
+      throw new ApiError(errorMessage, response.status);
+    }
+
+    // Check if the API response indicates failure
+    if (!responseData.success) {
+      throw new ApiError(responseData.message || 'Request failed', response.status);
+    }
+
+    return responseData;
+
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      throw error.response.data as ApiResponse<T>;
+    console.error('API request failed:', error);
+    
+    // If it's already an ApiError, re-throw it
+    if (error instanceof ApiError) {
+      throw error;
     }
     
-    throw {
-      success: false,
-      message: error instanceof Error ? error.message : 'An unexpected error occurred',
-    } as ApiResponse<T>;
+    // Handle network errors or other fetch errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new ApiError('Network error: Unable to connect to server. Please check if the server is running.');
+    }
+    
+    // Handle other errors
+    throw new ApiError(
+      error instanceof Error ? error.message : 'An unexpected error occurred'
+    );
   }
 };

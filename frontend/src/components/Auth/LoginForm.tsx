@@ -15,14 +15,6 @@ interface LoginFormProps {
   onSwitchToRegister: () => void;
 }
 
-interface AuthError extends Error {
-  response?: {
-    data: {
-      message: string;
-    };
-  };
-}
-
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
@@ -56,22 +48,20 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     
     if (Object.keys(newErrors).length === 0) {
       try {
+        console.log('Submitting login form with:', { email: formData.email });
         await login(formData);
+        console.log('Login successful, redirecting...');
         // Navigation will be handled by the protected route logic
       } catch (error: unknown) {
-        console.error('Login error:', error);
+        console.error('Login form error:', error);
         
         let errorMessage = 'Login failed. Please try again.';
         
         if (error instanceof Error) {
           errorMessage = error.message;
-        } else {
-          const authError = error as AuthError;
-          if (authError?.response?.data?.message) {
-            errorMessage = authError.response.data.message;
-          }
         }
         
+        // Set the error to display in UI
         setErrors({ general: errorMessage });
       }
     }
@@ -178,9 +168,18 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           border: '1px solid #fecaca',
           borderRadius: '8px',
           color: '#dc2626',
-          fontSize: '14px'
+          fontSize: '14px',
+          fontWeight: '500'
         }}>
-          {errors.general}
+          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+            <span style={{ 
+              fontSize: '16px', 
+              marginRight: '8px', 
+              lineHeight: '1.2',
+              color: '#dc2626'
+            }}>⚠️</span>
+            <span style={{ lineHeight: '1.4' }}>{errors.general}</span>
+          </div>
         </div>
       )}
       

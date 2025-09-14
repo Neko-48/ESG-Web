@@ -27,11 +27,11 @@ export class AuthService {
     const saltRounds = 12;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    // Insert new user
+    // Insert new user (แก้ไขให้ไม่ใช้ created_at, updated_at)
     const result = await query(
-      `INSERT INTO users (email, first_name, last_name, password_hash, created_at, updated_at) 
-       VALUES ($1, $2, $3, $4, NOW(), NOW()) 
-       RETURNING user_id, email, first_name, last_name, created_at`,
+      `INSERT INTO users (email, first_name, last_name, password_hash) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING user_id, email, first_name, last_name`,
       [email.toLowerCase().trim(), firstName.trim(), lastName.trim(), password_hash]
     );
 
@@ -69,7 +69,7 @@ export class AuthService {
     );
 
     if (result.rows.length === 0) {
-      throw new Error("No account found with this email address");
+      throw new Error("Invalid email or password");
     }
 
     const user = result.rows[0];
@@ -103,8 +103,9 @@ export class AuthService {
   }
 
   static async getUserById(userId: number): Promise<User | null> {
+    // แก้ไขให้ไม่ query created_at, updated_at ถ้าไม่มี columns เหล่านี้
     const result = await query(
-      "SELECT user_id, email, first_name, last_name, created_at, updated_at FROM users WHERE user_id = $1",
+      "SELECT user_id, email, first_name, last_name FROM users WHERE user_id = $1",
       [userId]
     );
 

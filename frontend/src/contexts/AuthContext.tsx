@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { User, LoginFormData, RegisterFormData, AuthContextType } from '../types/authType';
-import type { ApiResponse } from '../types/apiType';
-import { apiRequest } from '../services/apiService';
+import { apiRequest, ApiError } from '../services/apiService';
 
 interface AuthState {
   user: User | null;
@@ -15,15 +14,6 @@ type AuthAction =
   | { type: 'LOGIN_SUCCESS'; payload: { user: User; token: string } }
   | { type: 'LOGOUT' }
   | { type: 'SET_USER'; payload: User };
-
-interface AuthError extends Error {
-  success?: boolean;
-  response?: {
-    data: {
-      message: string;
-    };
-  };
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -95,7 +85,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const response = await apiRequest<{ user: User; token: string }>('POST', '/auth/login', credentials as Record<string, unknown>);
+      console.log('Attempting login with:', { email: credentials.email });
+      
+      const response = await apiRequest<{ user: User; token: string }>(
+        'POST', 
+        '/auth/login', 
+        credentials as unknown as Record<string, unknown>
+      );
+      
+      console.log('Login response:', response);
       
       if (response.success && response.data) {
         const { user, token } = response.data;
@@ -104,28 +102,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('user_data', JSON.stringify(user));
         
         dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+        console.log('Login successful for user:', user.email);
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: unknown) {
+      console.error('Login error in context:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       
-      // Handle different error types
-      const authError = error as AuthError | ApiResponse<never>;
-      
-      if ('success' in authError && authError.success === false) {
-        // This is an API response error
-        throw new Error(authError.message || 'Login failed');
-      } else if ('response' in authError && authError.response?.data) {
-        // This is an axios error with response data
-        throw new Error(authError.response.data.message || 'Login failed');
-      } else if (authError instanceof Error) {
-        // This is a regular Error object
-        throw authError;
-      } else {
-        // Unknown error type
-        throw new Error('An unexpected error occurred during login');
+      // Handle ApiError specifically
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
       }
+      
+      // Handle other error types
+      if (error instanceof Error) {
+        throw error;
+      }
+      
+      // Fallback for unknown errors
+      throw new Error('An unexpected error occurred during login');
     }
   };
 
@@ -133,9 +129,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
+      console.log('Attempting registration with:', { 
+        email: userData.email, 
+        firstName: userData.firstName,
+        lastName: userData.lastName 
+      });
+      
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = userData;
-      const response = await apiRequest<{ user: User; token: string }>('POST', '/auth/register', registerData as Record<string, unknown>);
+      const response = await apiRequest<{ user: User; token: string }>(
+        'POST', 
+        '/auth/register', 
+        registerData as unknown as Record<string, unknown>
+      );
+      
+      console.log('Registration response:', response);
       
       if (response.success && response.data) {
         const { user, token } = response.data;
@@ -144,28 +152,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('user_data', JSON.stringify(user));
         
         dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+        console.log('Registration successful for user:', user.email);
       } else {
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error: unknown) {
+      console.error('Registration error in context:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       
-      // Handle different error types
-      const authError = error as AuthError | ApiResponse<never>;
-      
-      if ('success' in authError && authError.success === false) {
-        // This is an API response error
-        throw new Error(authError.message || 'Registration failed');
-      } else if ('response' in authError && authError.response?.data) {
-        // This is an axios error with response data
-        throw new Error(authError.response.data.message || 'Registration failed');
-      } else if (authError instanceof Error) {
-        // This is a regular Error object
-        throw authError;
-      } else {
-        // Unknown error type
-        throw new Error('An unexpected error occurred during registration');
+      // Handle ApiError specifically
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
       }
+      
+      // Handle other error types
+      if (error instanceof Error) {
+        throw error;
+      }
+      
+      // Fallback for unknown errors
+      throw new Error('An unexpected error occurred during registration');
     }
   };
 
@@ -173,6 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     dispatch({ type: 'LOGOUT' });
+    console.log('User logged out');
   };
 
   const contextValue: AuthContextType = {
@@ -191,6 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
