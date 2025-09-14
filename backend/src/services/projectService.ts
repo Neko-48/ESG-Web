@@ -10,18 +10,18 @@ import {
 
 export class ProjectService {
   static async createProject(userId: number, projectData: CreateProjectRequest): Promise<Project> {
-    const { project_name, industry, description, project_data } = projectData;
+    const { project_name, industry, annual_revenue, description, project_data } = projectData;
 
     // Start transaction
     const client = await query('BEGIN');
     
     try {
-      // Insert project
+      // Insert project with annual revenue
       const projectResult = await query(
-        `INSERT INTO projects (user_id, project_name, industry, description, status, submitted_at)
-         VALUES ($1, $2, $3, $4, 'PENDING', CURRENT_TIMESTAMP)
+        `INSERT INTO projects (user_id, project_name, industry, annual_revenue, description, status, submitted_at)
+         VALUES ($1, $2, $3, $4, $5, 'PENDING', CURRENT_TIMESTAMP)
          RETURNING *`,
-        [userId, project_name, industry, description || null]
+        [userId, project_name, industry, annual_revenue, description || null]
       );
 
       const project = projectResult.rows[0];
@@ -53,9 +53,6 @@ export class ProjectService {
       `SELECT 
         p.*,
         e.evaluation_id,
-        e.recommendations,
-        e.strengths,
-        e.risks,
         e.overall_score,
         e.status as evaluation_status
        FROM projects p
@@ -65,19 +62,17 @@ export class ProjectService {
       [userId]
     );
 
-    const projects = result.rows.map(row => ({
+    const projects: ProjectWithEvaluation[] = result.rows.map(row => ({
       project_id: row.project_id,
       project_name: row.project_name,
       submitted_at: row.submitted_at,
       industry: row.industry,
+      annual_revenue: row.annual_revenue,
       status: row.status,
       description: row.description,
       user_id: row.user_id,
       evaluation: row.evaluation_id ? {
         evaluation_id: row.evaluation_id,
-        recommendations: row.recommendations,
-        strengths: row.strengths,
-        risks: row.risks,
         overall_score: row.overall_score,
         status: row.evaluation_status,
         project_id: row.project_id,
@@ -94,9 +89,6 @@ export class ProjectService {
       `SELECT 
         p.*,
         e.evaluation_id,
-        e.recommendations,
-        e.strengths,
-        e.risks,
         e.overall_score,
         e.status as evaluation_status
        FROM projects p
@@ -115,7 +107,7 @@ export class ProjectService {
     const projectDataResult = await query(
       `SELECT pd.*, ki.name as issue_name, ki.pillar
        FROM project_data pd
-       JOIN key_issues ki ON pd.issue_id = ki.issue_id
+       JOIN key_issue ki ON pd.issue_id = ki.issue_id
        WHERE pd.project_id = $1`,
       [projectId]
     );
@@ -135,15 +127,13 @@ export class ProjectService {
       project_name: row.project_name,
       submitted_at: row.submitted_at,
       industry: row.industry,
+      annual_revenue: row.annual_revenue,
       status: row.status,
       description: row.description,
       user_id: row.user_id,
       project_data: projectDataResult.rows,
       evaluation: row.evaluation_id ? {
         evaluation_id: row.evaluation_id,
-        recommendations: row.recommendations,
-        strengths: row.strengths,
-        risks: row.risks,
         overall_score: row.overall_score,
         status: row.evaluation_status,
         project_id: row.project_id,
@@ -174,120 +164,72 @@ export class ProjectService {
   static async getKeyIssues(): Promise<any[]> {
     const result = await query(
       `SELECT ki.*, ms.criteria, ms.benchmark 
-       FROM key_issues ki
-       JOIN msci_standards ms ON ki.standard_id = ms.standard_id
+       FROM key_issue ki
+       JOIN msci_standard ms ON ki.standard_id = ms.standard_id
        ORDER BY ki.pillar, ki.issue_id`
     );
-    return result.rows;
+    // Process the results to extract input types and options from criteria
+    return result.rows.map(row => {
+      let input_type: 'dropdown' | 'numeric' | 'text' = 'text';
+      let dropdown_options: string[] = [];
+
+      // Parse criteria to determine input type and options
+      if (row.criteria) {
+        const criteria = row.criteria;
+        
+        // Check if criteria contains dropdown options
+        if (criteria.options && Array.isArray(criteria.options)) {
+          input_type = 'dropdown';
+          dropdown_options = criteria.options;
+        } else if (criteria.type === 'numeric' || criteria.input_type === 'numeric') {
+          input_type = 'numeric';
+        } else if (criteria.type === 'dropdown' || criteria.input_type === 'dropdown') {
+          input_type = 'dropdown';
+          dropdown_options = criteria.dropdown_options || [];
+        }
+      }
+
+      return {
+        issue_id: row.issue_id,
+        name: row.name,
+        pillar: row.pillar,
+        description: row.description,
+        msci_weight: row.msci_weight,
+        standard_id: row.standard_id,
+        input_type,
+        dropdown_options,
+        criteria: row.criteria,
+        benchmark: row.benchmark
+      };
+    });
   }
 
-  // Mock ESG evaluation function
+  // Simplified trigger evaluation - no complex calculations
   static async triggerEvaluation(projectId: number): Promise<void> {
     try {
-      await this.updateProjectStatus(projectId, 'PROCESSING');
-
-      setTimeout(async () => {
-        try {
-          // Get project data for calculation
-          const projectDataResult = await query(
-            `SELECT pd.*, ki.pillar, ki.msci_weight
-             FROM project_data pd
-             JOIN key_issues ki ON pd.issue_id = ki.issue_id
-             WHERE pd.project_id = $1`,
-            [projectId]
-          );
-
-          const projectData = projectDataResult.rows;
-
-          // Calculate scores for each pillar
-          const pillarScores = this.calculatePillarScores(projectData);
-          const overallScore = this.calculateOverallScore(pillarScores);
-          const evaluationStatus = overallScore >= 70 ? 'PASSED' : 'FAILED';
-
-          // Insert evaluation
-          const evaluationResult = await query(
-            `INSERT INTO evaluations 
-             (project_id, recommendations, strengths, risks, overall_score, status)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING evaluation_id`,
-            [
-              projectId,
-              ['Improve environmental practices', 'Enhance governance transparency'],
-              ['Strong social programs', 'Good stakeholder engagement'],
-              ['Climate change exposure', 'Regulatory compliance'],
-              overallScore,
-              evaluationStatus
-            ]
-          );
-
-          const evaluationId = evaluationResult.rows[0].evaluation_id;
-
-          // Insert pillar scores
-          for (const pillarScore of pillarScores) {
-            await query(
-              `INSERT INTO pillar_scores 
-               (pillar_type, score, weight, pass_status, key_count, total_weight, 
-                weighted_sum, evaluation_id, standard_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-              [
-                pillarScore.pillar_type,
-                pillarScore.score,
-                pillarScore.weight,
-                pillarScore.pass_status,
-                pillarScore.key_count,
-                pillarScore.total_weight,
-                pillarScore.weighted_sum,
-                evaluationId,
-                1 // Default standard_id
-              ]
-            );
-          }
-
-          // Update project status
-          await this.updateProjectStatus(projectId, 'COMPLETED');
-
-        } catch (error) {
-          console.error('Error in mock evaluation:', error);
-          await this.updateProjectStatus(projectId, 'COMPLETED'); // Still complete but may have failed evaluation
-        }
-      }, 5000); // 5 second delay
-
+      // Just update the status to indicate evaluation has been triggered
+      // But don't actually do any evaluation calculations
+      await this.updateProjectStatus(projectId, 'PENDING');
+      
+      console.log(`Evaluation triggered for project ${projectId} - status remains PENDING`);
     } catch (error) {
       console.error('Error triggering evaluation:', error);
-      await this.updateProjectStatus(projectId, 'COMPLETED');
+      throw error;
     }
   }
 
-  private static calculatePillarScores(projectData: any[]): any[] {
-    const pillars = ['E', 'S', 'G'];
-    const pillarScores = [];
+  static async getProjectStats(userId: number): Promise<any> {
+    const result = await query(
+      `SELECT 
+        COUNT(*) as total_projects,
+        COUNT(CASE WHEN p.status = 'PENDING' THEN 1 END) as pending_projects,
+        COUNT(CASE WHEN p.status = 'PASSED' THEN 1 END) as passed_projects,
+        COUNT(CASE WHEN p.status = 'FAILED' THEN 1 END) as failed_projects
+       FROM projects p
+       WHERE p.user_id = $1`,
+      [userId]
+    );
 
-    for (const pillar of pillars) {
-      const pillarData = projectData.filter(data => data.pillar === pillar);
-      const totalWeight = pillarData.reduce((sum, data) => sum + data.msci_weight, 0);
-      
-      // Mock score calculation
-      const score = Math.random() * 40 + 60; // 60-100
-      const weightedSum = score * totalWeight;
-      
-      pillarScores.push({
-        pillar_type: pillar,
-        score: score,
-        weight: totalWeight / pillarData.length || 0,
-        pass_status: score >= 70,
-        key_count: pillarData.length,
-        total_weight: totalWeight,
-        weighted_sum: weightedSum
-      });
-    }
-
-    return pillarScores;
-  }
-
-  private static calculateOverallScore(pillarScores: any[]): number {
-    const totalWeightedSum = pillarScores.reduce((sum, pillar) => sum + pillar.weighted_sum, 0);
-    const totalWeight = pillarScores.reduce((sum, pillar) => sum + pillar.total_weight, 0);
-    
-    return totalWeight > 0 ? totalWeightedSum / totalWeight : 0;
+    return result.rows[0];
   }
 }

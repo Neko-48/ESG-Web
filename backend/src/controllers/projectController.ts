@@ -24,10 +24,20 @@ export class ProjectController {
         });
       }
 
+      // Validate project_data structure
+      for (const data of project_data) {
+        if (!data.issue_id || data.value === undefined) {
+          return res.status(400).json({
+            success: false,
+            message: 'Each project data item must have issue_id and value'
+          });
+        }
+      }
+
       const project = await ProjectService.createProject(userId, projectData);
       
-      // Trigger ESG evaluation asynchronously
-      ProjectService.triggerEvaluation(project.project_id);
+      // Trigger evaluation (but it won't do any actual calculation)
+      await ProjectService.triggerEvaluation(project.project_id);
       
       res.status(201).json({
         success: true,
@@ -142,6 +152,24 @@ export class ProjectController {
       res.status(500).json({
         success: false,
         message: 'Failed to get key issues'
+      });
+    }
+  }
+
+  static async getProjectStats(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user.userId;
+      const stats = await ProjectService.getProjectStats(userId);
+      
+      res.status(200).json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Get project stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get project statistics'
       });
     }
   }

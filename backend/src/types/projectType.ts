@@ -3,6 +3,7 @@ export interface Project {
   project_name: string;
   submitted_at: Date;
   industry: string;
+  annual_revenue: number; // New field for annual revenue in million baht
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED';
   description?: string;
   user_id: number;
@@ -17,9 +18,9 @@ export interface ProjectData {
 
 export interface Evaluation {
   evaluation_id: number;
-  recommendations: string[];
-  strengths: string[];
-  risks: string[];
+  // recommendations: string[];
+  // strengths: string[];
+  // risks: string[];
   overall_score: number;
   status: 'PENDING' | 'PASSED' | 'FAILED';
   project_id: number;
@@ -71,6 +72,7 @@ export interface VectorEmbedding {
 export interface CreateProjectRequest {
   project_name: string;
   industry: string;
+  annual_revenue: number; // New field for annual revenue
   description?: string;
   project_data: Array<{
     issue_id: number;
