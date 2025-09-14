@@ -4,13 +4,14 @@ import type { Project } from '../../types/projectType';
 import { apiRequest } from '../../services/apiService';
 import ProjectCard from './ProjectCard';
 import CreateProjectForm from './CreateProjectForm';
-import { Plus, LogOut, User } from 'lucide-react';
+import { Plus, LogOut, User, Search } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchProjects();
@@ -39,6 +40,12 @@ const Dashboard: React.FC = () => {
     fetchProjects(); // Refresh project list
   };
 
+  // Filter projects based on search query
+  const filteredProjects = projects.filter(project =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const containerStyle: React.CSSProperties = {
     minHeight: '100vh',
     backgroundColor: '#f9fafb',
@@ -62,7 +69,48 @@ const Dashboard: React.FC = () => {
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '24px',
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#1f2937',
+    margin: '0 0 24px 0'
+  };
+
+  const searchContainerStyle: React.CSSProperties = {
+    position: 'relative',
+    marginBottom: '32px'
+  };
+
+  const searchInputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 16px 12px 44px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '16px',
+    outline: 'none',
+    backgroundColor: 'white',
+    color: '#111827',
+    boxSizing: 'border-box',
+    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+  };
+
+  const searchIconStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: '16px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#9ca3af',
+    pointerEvents: 'none'
+  };
+
+  const sectionHeaderStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  };
+
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: '20px',
     fontWeight: '600',
     color: '#1f2937',
     margin: '0'
@@ -89,8 +137,10 @@ const Dashboard: React.FC = () => {
 
   const createButtonStyle: React.CSSProperties = {
     ...buttonStyle,
-    backgroundColor: '#3b82f6',
-    color: 'white'
+    backgroundColor: '#A9DEF9',
+    color: 'black',
+    fontSize: '14px',
+    padding: '8px 16px'
   };
 
   const logoutButtonStyle: React.CSSProperties = {
@@ -102,8 +152,7 @@ const Dashboard: React.FC = () => {
   const projectsGridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '20px',
-    marginTop: '24px'
+    gap: '20px'
   };
 
   const emptyStateStyle: React.CSSProperties = {
@@ -122,7 +171,9 @@ const Dashboard: React.FC = () => {
     <div style={containerStyle}>
       {/* Header */}
       <div style={headerStyle}>
-        <h1 style={titleStyle}>ESG Project Management</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+          ESG Project Management
+        </h1>
         <div style={userInfoStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <User size={16} />
@@ -130,10 +181,6 @@ const Dashboard: React.FC = () => {
               {user?.first_name} {user?.last_name}
             </span>
           </div>
-          <button style={createButtonStyle} onClick={handleCreateProject}>
-            <Plus size={16} />
-            New Project
-          </button>
           <button style={logoutButtonStyle} onClick={logout}>
             <LogOut size={16} />
             Logout
@@ -143,26 +190,58 @@ const Dashboard: React.FC = () => {
 
       {/* Content */}
       <div style={contentStyle}>
+        {/* Main Title */}
+        <h1 style={titleStyle}>ESG Project</h1>
+
+        {/* Search Bar */}
+        <div style={searchContainerStyle}>
+          <div style={searchIconStyle}>
+            <Search size={20} />
+          </div>
+          <input
+            type="text"
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={searchInputStyle}
+          />
+        </div>
+
+        {/* My Projects Section */}
+        <div style={sectionHeaderStyle}>
+          <h2 style={sectionTitleStyle}>My Projects</h2>
+          <button style={createButtonStyle} onClick={handleCreateProject}>
+            <Plus size={16} />
+            Add Project
+          </button>
+        </div>
+
+        {/* Projects Content */}
         {isLoading ? (
           <div style={emptyStateStyle}>
             <p style={{ fontSize: '18px', color: '#6b7280', margin: '0' }}>Loading projects...</p>
+          </div>
+        ) : filteredProjects.length === 0 && searchQuery ? (
+          <div style={emptyStateStyle}>
+            <h3 style={{ fontSize: '20px', color: '#1f2937', marginBottom: '8px', margin: '0 0 8px 0' }}>
+              No projects found
+            </h3>
+            <p style={{ fontSize: '16px', color: '#6b7280', margin: '0' }}>
+              Try adjusting your search terms
+            </p>
           </div>
         ) : projects.length === 0 ? (
           <div style={emptyStateStyle}>
             <h3 style={{ fontSize: '20px', color: '#1f2937', marginBottom: '8px', margin: '0 0 8px 0' }}>
               No projects yet
             </h3>
-            <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '20px', margin: '0 0 20px 0' }}>
-              Get started by creating your first ESG project
+            <p style={{ fontSize: '16px', color: '#6b7280', margin: '0' }}>
+              Get started by adding your first ESG project
             </p>
-            <button style={createButtonStyle} onClick={handleCreateProject}>
-              <Plus size={16} />
-              Create First Project
-            </button>
           </div>
         ) : (
           <div style={projectsGridStyle}>
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <ProjectCard key={project.project_id} project={project} onUpdate={fetchProjects} />
             ))}
           </div>

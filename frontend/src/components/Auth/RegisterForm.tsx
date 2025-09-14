@@ -183,7 +183,11 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     boxSizing: 'border-box',
     backgroundColor: isLoading ? '#9ca3af' : '#A9DEF9',
     color: 'black',
-    opacity: isLoading ? 0.7 : 1
+    opacity: isLoading ? 0.9 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px'
   };
 
   return (
@@ -385,8 +389,28 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           style={submitButtonStyle}
           disabled={isLoading}
         >
+          {isLoading && (
+            <div
+              style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #374151',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite'
+              }}
+            />
+          )}
           {isLoading ? 'Creating Account...' : 'Register'}
         </button>
+        
+        {/* keyframes สำหรับ animation */}
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     </>
   );

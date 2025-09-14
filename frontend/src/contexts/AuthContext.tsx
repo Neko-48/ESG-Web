@@ -47,7 +47,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 const initialState: AuthState = {
   user: null,
   token: null,
-  isLoading: true,
+  isLoading: false, // เปลี่ยนเป็น false เพื่อไม่ให้แสดงหน้าโหลด
   isAuthenticated: false
 };
 
@@ -73,9 +73,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error checking existing auth:', error);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_data');
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
       }
+      // ไม่ต้อง dispatch SET_LOADING เป็น false เพราะตั้งค่าเริ่มต้นเป็น false แล้ว
     };
 
     checkExistingAuth();
