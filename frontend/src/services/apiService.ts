@@ -1,4 +1,10 @@
-import type { ApiResponse } from '../types/apiType';
+// Define ApiResponse interface directly in this file if not imported properly
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message?: string;
+  data: T;
+  error?: string;
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -15,7 +21,7 @@ export class ApiError extends Error {
   }
 }
 
-export const apiRequest = async <T>(
+export const apiRequest = async <T = unknown>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   endpoint: string,
   data?: Record<string, unknown>

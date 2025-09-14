@@ -38,15 +38,163 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     'การท่องเที่ยว'
   ];
 
+  // Updated dropdown options with more comprehensive matching
+  const getDropdownOptions = (issueName: string): string[] | null => {
+    const issueOptions: { [key: string]: string[] } = {
+      // Climate Risk Management
+      'การจัดการความเสี่ยงด้านสภาพภูมิอากาศ': [
+        'มีแผนจัดการครบถ้วน และมีการติดตามประเมินผลสม่ำเสมอ',
+        'มีแผนจัดการแต่การติดตามไม่สม่ำเสมอ',
+        'มีการระบุความเสี่ยงแต่ไม่มีแผนจัดการที่ชัดเจน',
+        'ไม่มีการประเมินหรือจัดการความเสี่ยง'
+      ],
+      // // Carbon Footprint Assessment
+      'การประเมินรับมือ Carbon Footprint': [
+        'มีระบบติดตาม ตั้งเป้าหมาย และมีแผนลดที่ชัดเจน',
+        'มีระบบติดตามและเป้าหมายแต่แผนลดไม่ชัดเจน',
+        'มีการติดตามเบื้องต้นแต่ไม่มีเป้าหมาย',
+        'ไม่มีระบบติดตามหรือแผนจัดการ'
+      ],
+      'Carbon Footprint': [
+        'มีระบบติดตาม ตั้งเป้าหมาย และมีแผนลดที่ชัดเจน',
+        'มีระบบติดตามและเป้าหมายแต่แผนลดไม่ชัดเจน',
+        'มีการติดตามเบื้องต้นแต่ไม่มีเป้าหมาย',
+        'ไม่มีระบบติดตามหรือแผนจัดการ'
+      ],
+      // Waste Management and Recycling
+      'การจัดการขยะและการรีไซเคิล': [
+        'อัตราการรีไซเคิลมากกว่า 80%',
+        'อัตราการรีไซเคิล 60-80%',
+        'อัตราการรีไซเคิล 40-60%',
+        'อัตราการรีไซเคิลน้อยกว่า 40%'
+      ],
+      // Biodiversity Conservation
+      'การอนุรักษ์ความหลากหลายทางชีวภาพ': [
+        'มีโปรแกรมอนุรักษ์ที่ครบถ้วนและมีผลกระทบเชิงบวก',
+        'มีโปรแกรมอนุรักษ์แต่ผลกระทบจำกัด',
+        'มีกิจกรรมอนุรักษ์เป็นครั้งคราว',
+        'ไม่มีโปรแกรมอนุรักษ์'
+      ],
+      // Safety Standards - multiple possible names  
+      'มาตรการความปลอดภัยในการทำงาน': [
+        'ได้รับการรับรองมาตรการสากล (ISO 45001)',
+        'มีระบบจัดการความปลอดภัยที่ครบถ้วน',
+        'มีมาตรการความปลอดภัยขั้นพื้นฐาน',
+        'ไม่มีมาตรการความปลอดภัยที่ชัดเจน'
+      ],
+      // Employee Safety and Quality of Life
+      'ความปลอดภัยและคุณภาพชีวิตชุมชน': [
+        'มีโปรแกรมพัฒนาชุมชนที่ครอบคลุมและยั่งยืน',
+        'มีโปรแกรมพัฒนาชุมชนเป็นระยะ',
+        'มีกิจกรรมพัฒนาชุมชนเป็นครั้งคราว',
+        'ไม่มีโปรแกรมพัฒนาชุมชน'
+      ],
+      // Diversity and Inclusion
+      'ความหลากหลายและการรวมเข้า': [
+        'มีนโยบาย D&I ที่ครบถ้วนและมีการติดตามผล',
+        'มีนโยบาย D&I และมีการปฏิบัติบางส่วน',
+        'มีนโยบาย D&I เบื้องต้น',
+        'ไม่มีนโยบาย D&I ที่ชัดเจน'
+      ],
+      // Labor Relations Management
+      'ความสัมพันธ์ในการจัดการแรงงาน': [
+        'ไม่มีข้อพิพาทแรงงานและมีระบบจัดการที่ดี',
+        'มีข้อพิพาทน้อยและจัดการได้อย่างมีประสิทธิภาพ',
+        'มีข้อพิพาทบางส่วนแต่สามารถจัดการได้',
+        'มีข้อพิพาทแรงงานที่รุนแรงหรือยาวนาน'
+      ],
+      // Transparency in Reporting
+      'การปฏิบัติในการรายงานความโปร่งใส': [
+        'รายงานครบถ้วน ตรงเวลา และมีคุณภาพสูง',
+        'รายงานครบถ้วนและตรงเวลา',
+        'รายงานครบถ้วนแต่ล่าช้าบางครั้ง',
+        'รายงานไม่ครบถ้วนหรือล่าช้าเป็นประจำ'
+      ],
+      // Data Protection and Governance - multiple possible names
+      'คุณภาพการปกครองและการกำกับดูแล': [
+        'ระบบกำกับดูแลที่เป็นเลิศตามมาตรการสากล',
+        'ระบบกำกับดูแลที่ดีตามมาตรการทั่วไป',
+        'ระบบกำกับดูแลขั้นพื้นฐาน',
+        'ระบบกำกับดูแลไม่เพียงพอ'
+      ],
+      // Transparent Information Disclosure
+      'ปฏิบัติการเปิดเผยข้อมูลที่โปร่งใส': [
+        'เปิดเผยข้อมูลครบถ้วน โปร่งใส และเข้าใจง่าย',
+        'เปิดเผยข้อมูลครบถ้วนและโปร่งใส',
+        'เปิดเผยข้อมูลตามกฎหมายกำหนด',
+        'การเปิดเผยข้อมูลไม่เพียงพอ'
+      ],
+      // Business Ethics Framework
+      'กรอบจริยธรรมทางธุรกิจ': [
+        'มีกรอบจริยธรรมที่ครอบคลุมและมีการปฏิบัติที่เป็นเลิศ',
+        'มีกรอบจริยธรรมและมีการปฏิบัติที่ดี',
+        'มีกรอบจริยธรรมขั้นพื้นฐาน',
+        'ไม่มีกรอบจริยธรรมที่ชัดเจน'
+      ]
+    };
+
+    // Try exact match first
+    if (issueOptions[issueName]) {
+      return issueOptions[issueName];
+    }
+
+    // Try partial matching for key terms
+    const keyTermMatches = [
+      { terms: ['ความเสี่ยง', 'สภาพภูมิอากาศ'], options: issueOptions['การจัดการความเสี่ยงด้านสภาพภูมิอากาศ'] },
+      { terms: ['Carbon', 'Footprint'], options: issueOptions['การประเมินรับมือ Carbon Footprint'] },
+      { terms: ['ความปลอดภัย', 'การทำงาน'], options: issueOptions['มาตรการความปลอดภัยในการทำงาน'] },
+      { terms: ['การปกครอง', 'กำกับดูแล'], options: issueOptions['คุณภาพการปกครองและการกำกับดูแล'] }
+    ];
+
+    for (const match of keyTermMatches) {
+      if (match.terms.every(term => issueName.includes(term))) {
+        return match.options;
+      }
+    }
+
+    return null;
+  };
+
+  // Determine if field should be numeric based on name patterns
+  const isNumericField = (issueName: string): boolean => {
+    const numericPatterns = [
+      'การปล่อยคาร์บอน',
+      'ปริมาณการใช้น้ำ',
+      'เปอร์เซ็นต์การใช้พลังงานทดแทน',
+      'การลงทุนด้านสิ่งแวดล้อม',
+      'อัตราการบาดเจ็บในการทำงาน',
+      'เปอร์เซ็นต์พนักงานที่ได้รับการพัฒนา',
+      'การลงทุนในด้านการดูแลสุขภาพ',
+      'การลงทุนในชุมชนและสังคม',
+      'เปอร์เซ็นต์ของกรรมการอิสระ'
+    ];
+
+    return numericPatterns.some(pattern => issueName.includes(pattern));
+  };
+
   // Load key issues from API
   useEffect(() => {
     const loadKeyIssues = async () => {
       try {
         const response = await apiRequest('GET', '/projects/key-issues');
-        setKeyIssues(response.data);
+        const issues = response.data.map((issue: KeyIssue) => {
+          // Override input_type and dropdown_options based on issue name
+          const dropdownOptions = getDropdownOptions(issue.name);
+          const isNumeric = isNumericField(issue.name);
+          
+          console.log(`Issue: "${issue.name}", Dropdown Options:`, dropdownOptions); // Debug log
+          
+          return {
+            ...issue,
+            input_type: dropdownOptions ? 'dropdown' : (isNumeric ? 'numeric' : 'text'),
+            dropdown_options: dropdownOptions || []
+          };
+        });
+        
+        setKeyIssues(issues);
         
         // Initialize project_data with empty values for all key issues
-        const initialProjectData = response.data.map((issue: KeyIssue) => ({
+        const initialProjectData = issues.map((issue: KeyIssue) => ({
           issue_id: issue.issue_id,
           value: ''
         }));
@@ -81,11 +229,22 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
         data.issue_id === issueId ? { ...data, value } : data
       )
     }));
+
+    // Clear error for this specific ESG field if it exists
+    const errorKey = `esg_${issueId}`;
+    if (errors[errorKey]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
   };
 
   const validateForm = (): FormErrors => {
     const newErrors: FormErrors = {};
     
+    // Validate basic information
     if (!formData.project_name.trim()) {
       newErrors.project_name = 'กรุณากรอกชื่อโครงการ';
     }
@@ -97,6 +256,16 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     if (!formData.annual_revenue || formData.annual_revenue <= 0) {
       newErrors.annual_revenue = 'กรุณากรอกรายได้ต่อปี';
     }
+
+    // Validate ESG data - ALL fields are required
+    keyIssues.forEach(issue => {
+      const projectData = formData.project_data.find(data => data.issue_id === issue.issue_id);
+      const value = projectData?.value?.trim();
+      
+      if (!value) {
+        newErrors[`esg_${issue.issue_id}`] = `กรุณากรอกข้อมูล: ${issue.name}`;
+      }
+    });
     
     return newErrors;
   };
@@ -110,15 +279,8 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       try {
-        // Filter out empty project data
-        const filteredProjectData = formData.project_data.filter(data => data.value.trim() !== '');
-        
-        const submitData = {
-          ...formData,
-          project_data: filteredProjectData
-        };
-        
-        await apiRequest('POST', '/projects', submitData);
+        // All project data should be included (no filtering for empty values since all are required)
+        await apiRequest('POST', '/projects', formData);
         onProjectCreated();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสร้างโครงการ';
@@ -131,44 +293,62 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
 
   const renderInputField = (issue: KeyIssue) => {
     const currentValue = formData.project_data.find(data => data.issue_id === issue.issue_id)?.value || '';
+    const hasError = !!errors[`esg_${issue.issue_id}`];
+    
+    const fieldStyle = {
+      ...inputStyle,
+      borderColor: hasError ? '#dc2626' : '#d1d5db'
+    };
 
-    if (issue.input_type === 'dropdown' && issue.dropdown_options) {
+    if (issue.input_type === 'dropdown' && issue.dropdown_options && issue.dropdown_options.length > 0) {
       return (
-        <select
-          style={selectStyle}
-          value={currentValue}
-          onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
-          disabled={isLoading}
-        >
-          <option value="">เลือกตัวเลือก</option>
-          {issue.dropdown_options.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <div>
+          <select
+            style={{
+              ...selectStyle,
+              borderColor: hasError ? '#dc2626' : '#d1d5db'
+            }}
+            value={currentValue}
+            onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
+            disabled={isLoading}
+          >
+            <option value="">เลือกตัวเลือก</option>
+            {issue.dropdown_options.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+          {hasError && <p style={errorStyle}>{errors[`esg_${issue.issue_id}`]}</p>}
+        </div>
       );
     } else if (issue.input_type === 'numeric') {
       return (
-        <input
-          type="number"
-          style={inputStyle}
-          value={currentValue}
-          onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
-          placeholder={`กรอก${issue.name}`}
-          disabled={isLoading}
-          min="0"
-          step="0.01"
-        />
+        <div>
+          <input
+            type="number"
+            style={fieldStyle}
+            value={currentValue}
+            onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
+            placeholder={`กรอก${issue.name}`}
+            disabled={isLoading}
+            min="0"
+            step="0.01"
+          />
+          {hasError && <p style={errorStyle}>{errors[`esg_${issue.issue_id}`]}</p>}
+        </div>
       );
     } else {
       return (
-        <input
-          type="text"
-          style={inputStyle}
-          value={currentValue}
-          onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
-          placeholder={`กรอก${issue.name}`}
-          disabled={isLoading}
-        />
+        <div>
+          <input
+            type="text"
+            style={fieldStyle}
+            value={currentValue}
+            onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
+            placeholder={`กรอก${issue.name}`}
+            disabled={isLoading}
+          />
+          {hasError && <p style={errorStyle}>{errors[`esg_${issue.issue_id}`]}</p>}
+        </div>
       );
     }
   };
@@ -186,6 +366,15 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     'E': 'Environmental (สิ่งแวดล้อม)',
     'S': 'Social (สังคม)',
     'G': 'Governance (ธรรมาภิบาล)'
+  };
+
+  // Count errors for each pillar
+  const getPillarErrorCount = (pillar: string): number => {
+    if (!groupedIssues[pillar]) return 0;
+    
+    return groupedIssues[pillar].reduce((count, issue) => {
+      return count + (errors[`esg_${issue.issue_id}`] ? 1 : 0);
+    }, 0);
   };
 
   // Styles
@@ -242,6 +431,17 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     fontWeight: '500',
     color: '#374151',
     marginBottom: '8px'
+  };
+
+  const requiredLabelStyle: React.CSSProperties = {
+    ...labelStyle,
+    color: '#1f2937'
+  };
+
+  // Style for the red asterisk
+  const asteriskStyle: React.CSSProperties = {
+    color: '#dc2626',
+    marginLeft: '2px'
   };
 
   const inputStyle: React.CSSProperties = {
@@ -312,6 +512,13 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     marginTop: '4px'
   };
 
+  const pillarErrorStyle: React.CSSProperties = {
+    color: '#dc2626',
+    fontSize: '12px',
+    marginLeft: '8px',
+    fontWeight: '500'
+  };
+
   return (
     <div style={containerStyle}>
       <form style={formStyle} onSubmit={handleSubmit}>
@@ -333,10 +540,15 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
           <h2 style={sectionTitleStyle}>ข้อมูลพื้นฐาน</h2>
           
           <div style={fieldStyle}>
-            <label style={labelStyle}>ชื่อโครงการ</label>
+            <label style={labelStyle}>
+              ชื่อโครงการ<span style={asteriskStyle}>*</span>
+            </label>
             <input
               type="text"
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                borderColor: errors.project_name ? '#dc2626' : '#d1d5db'
+              }}
               value={formData.project_name}
               onChange={(e) => handleInputChange('project_name', e.target.value)}
               placeholder="กรอกชื่อโครงการ"
@@ -346,9 +558,14 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
           </div>
 
           <div style={fieldStyle}>
-            <label style={labelStyle}>อุตสาหกรรม</label>
+            <label style={labelStyle}>
+              อุตสาหกรรม<span style={asteriskStyle}>*</span>
+            </label>
             <select
-              style={selectStyle}
+              style={{
+                ...selectStyle,
+                borderColor: errors.industry ? '#dc2626' : '#d1d5db'
+              }}
               value={formData.industry}
               onChange={(e) => handleInputChange('industry', e.target.value)}
               disabled={isLoading}
@@ -362,10 +579,15 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
           </div>
 
           <div style={fieldStyle}>
-            <label style={labelStyle}>รายได้ต่อปี (บาท)</label>
+            <label style={labelStyle}>
+              รายได้ต่อปี (บาท)<span style={asteriskStyle}>*</span>
+            </label>
             <input
               type="number"
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                borderColor: errors.annual_revenue ? '#dc2626' : '#d1d5db'
+              }}
               value={formData.annual_revenue || ''}
               onChange={(e) => handleInputChange('annual_revenue', parseFloat(e.target.value) || 0)}
               placeholder="กรอกรายได้ต่อปีเป็นบาท"
@@ -392,14 +614,21 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
         {Object.entries(pillarTitles).map(([pillar, title]) => (
           groupedIssues[pillar] && groupedIssues[pillar].length > 0 && (
             <div key={pillar} style={sectionStyle}>
-              <h2 style={sectionTitleStyle}>{title}</h2>
+              <h2 style={sectionTitleStyle}>
+                {title}
+                {getPillarErrorCount(pillar) > 0 && (
+                  <span style={pillarErrorStyle}>
+                    ({getPillarErrorCount(pillar)} ข้อมูลที่ต้องกรอก)
+                  </span>
+                )}
+              </h2>
               
               {groupedIssues[pillar].map((issue) => (
                 <div key={issue.issue_id} style={fieldStyle}>
-                  <label style={labelStyle}>
-                    {issue.name}
+                  <label style={requiredLabelStyle}>
+                    {issue.name}<span style={asteriskStyle}>*</span>
                     {issue.description && (
-                      <span style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
+                      <span style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px', fontWeight: '400' }}>
                         {issue.description}
                       </span>
                     )}
@@ -410,6 +639,24 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
             </div>
           )
         ))}
+
+        {/* Summary of missing fields */}
+        {Object.keys(errors).filter(key => key.startsWith('esg_')).length > 0 && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{ color: '#dc2626', margin: '0 0 8px 0', fontSize: '16px' }}>
+              กรุณากรอกข้อมูลให้ครบถ้วน
+            </h3>
+            <p style={{ color: '#7f1d1d', margin: '0', fontSize: '14px' }}>
+              ยังมีข้อมูล ESG จำนวน {Object.keys(errors).filter(key => key.startsWith('esg_')).length} รายการที่ยังไม่ได้กรอก กรุณากรอกข้อมูลให้ครบถ้วนก่อนส่งโครงการ
+            </p>
+          </div>
+        )}
 
         {/* Submit Buttons */}
         <div style={buttonGroupStyle}>
