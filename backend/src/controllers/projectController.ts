@@ -150,40 +150,6 @@ export class ProjectController {
     }
   }
 
-  static async deleteProject(req: Request, res: Response) {
-    try {
-      const userId = (req as any).user.userId;
-      const projectId = parseInt(req.params.id);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid project ID'
-        });
-      }
-
-      const deleted = await ProjectService.deleteProject(projectId, userId);
-      
-      if (!deleted) {
-        return res.status(404).json({
-          success: false,
-          message: 'Project not found'
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Project deleted successfully'
-      });
-    } catch (error) {
-      console.error('Delete project error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete project'
-      });
-    }
-  }
-
   static async getKeyIssues(req: Request, res: Response) {
     try {
       const keyIssues = await ProjectService.getKeyIssues();

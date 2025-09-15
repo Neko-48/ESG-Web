@@ -15,6 +15,5 @@ router.get('/key-issues', ProjectController.getKeyIssues);
 router.post('/', validateProject, handleValidation, ProjectController.createProject);
 router.get('/', ProjectController.getProjects);
 router.get('/:id', ProjectController.getProjectById);
-router.delete('/:id', ProjectController.deleteProject);
 
 export default router;

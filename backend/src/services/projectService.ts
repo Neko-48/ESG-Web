@@ -152,29 +152,6 @@ export class ProjectService {
     );
   }
 
-  static async deleteProject(projectId: number, userId: number): Promise<boolean> {
-    // Start transaction for delete operation
-    await query('BEGIN');
-    
-    try {
-      // Delete related data first
-      await query('DELETE FROM project_data WHERE project_id = $1', [projectId]);
-      await query('DELETE FROM evaluation WHERE project_id = $1', [projectId]);
-      
-      const result = await query(
-        'DELETE FROM projects WHERE project_id = $1 AND user_id = $2',
-        [projectId, userId]
-      );
-
-      await query('COMMIT');
-      return (result?.rowCount ?? 0) > 0;
-      
-    } catch (error) {
-      await query('ROLLBACK');
-      throw error;
-    }
-  }
-
   static async getKeyIssues(): Promise<any[]> {
     const result = await query(
       `SELECT ki.*, ms.criteria, ms.benchmark 

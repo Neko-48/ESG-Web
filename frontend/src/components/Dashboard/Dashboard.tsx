@@ -110,13 +110,6 @@ const Dashboard: React.FC = () => {
     marginBottom: '20px'
   };
 
-  const sectionTitleStyle: React.CSSProperties = {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#1f2937',
-    margin: '0'
-  };
-
   const userInfoStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -150,10 +143,11 @@ const Dashboard: React.FC = () => {
     color: 'white'
   };
 
-  const projectsGridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '20px'
+  // Updated projects container style for vertical stacking
+  const projectsContainerStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
   };
 
   const emptyStateStyle: React.CSSProperties = {
@@ -206,7 +200,7 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div style={headerStyle}>
         <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
-          ESG Project Management
+          ESG Project Management System
         </h1>
         <div style={userInfoStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -225,7 +219,7 @@ const Dashboard: React.FC = () => {
       {/* Content */}
       <div style={contentStyle}>
         {/* Main Title */}
-        <h1 style={titleStyle}>ESG Projects</h1>
+        <h1 style={titleStyle}>My Projects</h1>
 
         {/* Statistics */}
         <div style={statsStyle}>
@@ -257,12 +251,12 @@ const Dashboard: React.FC = () => {
           />
         </div>
 
-        {/* My Projects Section */}
+        {/* Add Project Button */}
         <div style={sectionHeaderStyle}>
-          <h2 style={sectionTitleStyle}>My Projects</h2>
+          <div></div> {/* Empty div for spacing */}
           <button style={createButtonStyle} onClick={handleCreateProject}>
             <Plus size={16} />
-            Add Project
+            เพิ่มโครงการ
           </button>
         </div>
 
@@ -305,9 +299,9 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div style={projectsGridStyle}>
+          <div style={projectsContainerStyle}>
             {filteredProjects.map((project) => (
-              <ProjectCard key={project.project_id} project={project} onUpdate={fetchProjects} />
+              <ProjectCard key={project.project_id} project={project} />
             ))}
           </div>
         )}
