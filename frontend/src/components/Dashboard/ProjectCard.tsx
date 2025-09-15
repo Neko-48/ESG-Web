@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Project } from '../../types/projectType';
 import { Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
 
@@ -7,9 +8,11 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+  const navigate = useNavigate();
+
   const handleViewDetails = () => {
-    // Navigate to project details page
-    window.location.href = `/project/${project.project_id}`;
+    // Navigate to project details page using React Router
+    navigate(`/project/${project.project_id}`);
   };
 
   // Map project status to display status

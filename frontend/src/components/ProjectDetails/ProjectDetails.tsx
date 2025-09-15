@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, CheckCircle, XCircle, Calendar, Building, User, TrendingUp, AlertTriangle, Target, Leaf, Users, Scale } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, XCircle, Calendar, Building, User, TrendingUp, Leaf, Users, Scale, DollarSign } from 'lucide-react';
 import { apiRequest } from '../../services/apiService';
 import type { Project } from '../../types/projectType';
 
@@ -38,9 +38,17 @@ const ProjectDetails: React.FC = () => {
     navigate('/dashboard');
   };
 
+  const getDisplayStatus = () => {
+    if (!project?.evaluation) {
+      return project?.status || 'PENDING';
+    }
+    return project.evaluation.status;
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'PENDING':
+      case 'PROCESSING':
         return <Clock size={20} color="#f59e0b" />;
       case 'PASSED':
         return <CheckCircle size={20} color="#10b981" />;
@@ -54,6 +62,7 @@ const ProjectDetails: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
+      case 'PROCESSING':
         return '#f59e0b';
       case 'PASSED':
         return '#10b981';
@@ -67,6 +76,7 @@ const ProjectDetails: React.FC = () => {
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
       case 'PENDING':
+      case 'PROCESSING':
         return '#fef3c7';
       case 'PASSED':
         return '#dcfce7';
@@ -77,12 +87,19 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
-  const parseJsonData = (jsonString: string) => {
-    try {
-      return JSON.parse(jsonString);
-    } catch {
-      return {};
+  const formatRevenue = (amount?: number): string => {
+    if (!amount || amount === 0) return 'ไม่ระบุ';
+    
+    if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(1)}B THB`;
+    } else {
+      return `${amount.toLocaleString()} M THB`;
     }
+  };
+
+  const getPillarData = (pillar: 'E' | 'S' | 'G') => {
+    if (!project?.project_data) return [];
+    return project.project_data.filter(data => data.pillar === pillar);
   };
 
   if (isLoading) {
@@ -160,9 +177,10 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
-  const environmentalData = parseJsonData(project.environmental_data);
-  const socialData = parseJsonData(project.social_data);
-  const governanceData = parseJsonData(project.governance_data);
+  const displayStatus = getDisplayStatus();
+  const environmentalData = getPillarData('E');
+  const socialData = getPillarData('S');
+  const governanceData = getPillarData('G');
 
   const containerStyle: React.CSSProperties = {
     minHeight: '100vh',
@@ -217,7 +235,14 @@ const ProjectDetails: React.FC = () => {
     fontSize: '28px',
     fontWeight: '600',
     color: '#1f2937',
-    margin: '0 0 16px 0'
+    margin: '0 0 8px 0'
+  };
+
+  const descriptionStyle: React.CSSProperties = {
+    fontSize: '16px',
+    color: '#6b7280',
+    lineHeight: '1.6',
+    margin: '0 0 20px 0'
   };
 
   const statusBadgeStyle: React.CSSProperties = {
@@ -228,8 +253,8 @@ const ProjectDetails: React.FC = () => {
     borderRadius: '20px',
     fontSize: '14px',
     fontWeight: '500',
-    backgroundColor: getStatusBackgroundColor(project.status),
-    color: getStatusColor(project.status),
+    backgroundColor: getStatusBackgroundColor(displayStatus),
+    color: getStatusColor(displayStatus),
     marginBottom: '24px'
   };
 
@@ -305,7 +330,7 @@ const ProjectDetails: React.FC = () => {
   const scoreValueStyle: React.CSSProperties = {
     fontSize: '24px',
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#6b7280',
     margin: '0 0 4px 0'
   };
 
@@ -315,31 +340,18 @@ const ProjectDetails: React.FC = () => {
     margin: '0'
   };
 
-  const insightSectionStyle: React.CSSProperties = {
-    marginTop: '16px'
-  };
-
-  const insightCardStyle: React.CSSProperties = {
-    padding: '16px',
+  const pendingMessageStyle: React.CSSProperties = {
+    textAlign: 'center',
+    padding: '40px 20px',
     backgroundColor: '#f9fafb',
     borderRadius: '8px',
-    marginBottom: '12px'
+    border: '1px solid #e5e7eb'
   };
 
-  const insightTitleStyle: React.CSSProperties = {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  };
-
-  const insightTextStyle: React.CSSProperties = {
-    fontSize: '14px',
-    color: '#4b5563',
-    lineHeight: '1.5'
+  const pendingTextStyle: React.CSSProperties = {
+    fontSize: '16px',
+    color: '#6b7280',
+    margin: '8px 0 0 0'
   };
 
   return (
@@ -363,16 +375,23 @@ const ProjectDetails: React.FC = () => {
         <div style={cardStyle}>
           <h1 style={titleStyle}>{project.project_name}</h1>
           
+          {/* Project Description */}
+          {project.description && (
+            <p style={descriptionStyle}>
+              {project.description}
+            </p>
+          )}
+          
           <div style={statusBadgeStyle}>
-            {getStatusIcon(project.status)}
-            {project.status}
+            {getStatusIcon(displayStatus)}
+            {displayStatus}
           </div>
 
           <div style={infoGridStyle}>
             <div style={infoItemStyle}>
               <Building size={16} color="#6b7280" />
               <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>Industry</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>อุตสาหกรรม</p>
                 <p style={{ fontSize: '14px', color: '#1f2937', fontWeight: '500', margin: '0' }}>
                   {project.industry}
                 </p>
@@ -381,16 +400,16 @@ const ProjectDetails: React.FC = () => {
             <div style={infoItemStyle}>
               <Calendar size={16} color="#6b7280" />
               <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>Created</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>วันที่สร้าง</p>
                 <p style={{ fontSize: '14px', color: '#1f2937', fontWeight: '500', margin: '0' }}>
-                  {new Date(project.created_at).toLocaleDateString()}
+                  {new Date(project.submitted_at).toLocaleDateString('th-TH')}
                 </p>
               </div>
             </div>
             <div style={infoItemStyle}>
               <User size={16} color="#6b7280" />
               <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>Project ID</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>รหัสโครงการ</p>
                 <p style={{ fontSize: '14px', color: '#1f2937', fontWeight: '500', margin: '0' }}>
                   #{project.project_id}
                 </p>
@@ -400,127 +419,116 @@ const ProjectDetails: React.FC = () => {
         </div>
 
         {/* ESG Evaluation Results */}
-        {project.evaluation && (
-          <div style={cardStyle}>
-            <h2 style={sectionTitleStyle}>
-              <TrendingUp size={20} color="#3b82f6" />
-              ESG Evaluation Results
-            </h2>
+        <div style={cardStyle}>
+          <h2 style={sectionTitleStyle}>
+            <TrendingUp size={20} color="#3b82f6" />
+            ผลการประเมิน ESG
+          </h2>
 
-            <div style={scoresGridStyle}>
-              <div style={scoreCardStyle}>
-                <h3 style={scoreValueStyle}>{project.evaluation.environmental_score.toFixed(1)}</h3>
-                <p style={scoreLabelStyle}>Environmental</p>
-              </div>
-              <div style={scoreCardStyle}>
-                <h3 style={scoreValueStyle}>{project.evaluation.social_score.toFixed(1)}</h3>
-                <p style={scoreLabelStyle}>Social</p>
-              </div>
-              <div style={scoreCardStyle}>
-                <h3 style={scoreValueStyle}>{project.evaluation.governance_score.toFixed(1)}</h3>
-                <p style={scoreLabelStyle}>Governance</p>
-              </div>
-              <div style={{
-                ...scoreCardStyle,
-                backgroundColor: project.evaluation.pass_fail === 'PASS' ? '#dcfce7' : '#fee2e2',
-                border: `1px solid ${project.evaluation.pass_fail === 'PASS' ? '#10b981' : '#ef4444'}`
-              }}>
-                <h3 style={{
-                  ...scoreValueStyle,
-                  color: project.evaluation.pass_fail === 'PASS' ? '#166534' : '#991b1b'
+          {project.evaluation && project.evaluation.status !== 'PENDING' ? (
+            <>
+              <div style={scoresGridStyle}>
+                {project.evaluation.pillar_scores?.map((pillar) => (
+                  <div key={pillar.pillar_type} style={scoreCardStyle}>
+                    <h3 style={scoreValueStyle}>{pillar.score.toFixed(1)}</h3>
+                    <p style={scoreLabelStyle}>
+                      {pillar.pillar_type === 'E' ? 'Environmental' : 
+                       pillar.pillar_type === 'S' ? 'Social' : 'Governance'}
+                    </p>
+                  </div>
+                ))}
+                <div style={{
+                  ...scoreCardStyle,
+                  backgroundColor: project.evaluation.status === 'PASSED' ? '#dcfce7' : '#fee2e2',
+                  border: `1px solid ${project.evaluation.status === 'PASSED' ? '#10b981' : '#ef4444'}`
                 }}>
-                  {project.evaluation.overall_score.toFixed(1)}
-                </h3>
-                <p style={{
-                  ...scoreLabelStyle,
-                  color: project.evaluation.pass_fail === 'PASS' ? '#166534' : '#991b1b',
-                  fontWeight: '600'
-                }}>
-                  Overall Score
-                </p>
+                  <h3 style={{
+                    ...scoreValueStyle,
+                    color: project.evaluation.status === 'PASSED' ? '#166534' : '#991b1b'
+                  }}>
+                    {project.evaluation.overall_score.toFixed(1)}
+                  </h3>
+                  <p style={{
+                    ...scoreLabelStyle,
+                    color: project.evaluation.status === 'PASSED' ? '#166534' : '#991b1b',
+                    fontWeight: '600'
+                  }}>
+                    คะแนนรวม
+                  </p>
+                </div>
               </div>
+            </>
+          ) : (
+            <div style={pendingMessageStyle}>
+              <Clock size={32} color="#6b7280" style={{ margin: '0 auto' }} />
+              <p style={pendingTextStyle}>
+                โครงการนี้ยังไม่ได้รับการประเมิน
+              </p>
+              <p style={{ fontSize: '14px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                กรุณารอระบบประมวลผลการประเมิน ESG
+              </p>
             </div>
-
-            <div style={insightSectionStyle}>
-              {project.evaluation.recommendations && (
-                <div style={insightCardStyle}>
-                  <h4 style={insightTitleStyle}>
-                    <Target size={16} color="#3b82f6" />
-                    Recommendations
-                  </h4>
-                  <p style={insightTextStyle}>{project.evaluation.recommendations}</p>
-                </div>
-              )}
-
-              {project.evaluation.strengths && (
-                <div style={insightCardStyle}>
-                  <h4 style={insightTitleStyle}>
-                    <CheckCircle size={16} color="#10b981" />
-                    Strengths
-                  </h4>
-                  <p style={insightTextStyle}>{project.evaluation.strengths}</p>
-                </div>
-              )}
-
-              {project.evaluation.risks && (
-                <div style={insightCardStyle}>
-                  <h4 style={insightTitleStyle}>
-                    <AlertTriangle size={16} color="#f59e0b" />
-                    Risks
-                  </h4>
-                  <p style={insightTextStyle}>{project.evaluation.risks}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Environmental Data */}
         <div style={cardStyle}>
           <h2 style={sectionTitleStyle}>
             <Leaf size={20} color="#10b981" />
-            Environmental Data
+            ข้อมูลด้านสิ่งแวดล้อม (Environmental)
           </h2>
-          <div style={dataGridStyle}>
-            {Object.entries(environmentalData).map(([key, value]) => (
-              <div key={key} style={dataItemStyle}>
-                <p style={dataLabelStyle}>{key.replace(/_/g, ' ')}</p>
-                <p style={dataValueStyle}>{String(value) || 'N/A'}</p>
-              </div>
-            ))}
-          </div>
+          {environmentalData.length > 0 ? (
+            <div style={dataGridStyle}>
+              {environmentalData.map((data) => (
+                <div key={data.data_id} style={dataItemStyle}>
+                  <p style={dataLabelStyle}>{data.issue_name || `Issue ${data.issue_id}`}</p>
+                  <p style={dataValueStyle}>{data.value || 'N/A'}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: '#6b7280', fontStyle: 'italic' }}>ไม่มีข้อมูลด้านสิ่งแวดล้อม</p>
+          )}
         </div>
 
         {/* Social Data */}
         <div style={cardStyle}>
           <h2 style={sectionTitleStyle}>
             <Users size={20} color="#3b82f6" />
-            Social Data
+            ข้อมูลด้านสังคม (Social)
           </h2>
-          <div style={dataGridStyle}>
-            {Object.entries(socialData).map(([key, value]) => (
-              <div key={key} style={dataItemStyle}>
-                <p style={dataLabelStyle}>{key.replace(/_/g, ' ')}</p>
-                <p style={dataValueStyle}>{String(value) || 'N/A'}</p>
-              </div>
-            ))}
-          </div>
+          {socialData.length > 0 ? (
+            <div style={dataGridStyle}>
+              {socialData.map((data) => (
+                <div key={data.data_id} style={dataItemStyle}>
+                  <p style={dataLabelStyle}>{data.issue_name || `Issue ${data.issue_id}`}</p>
+                  <p style={dataValueStyle}>{data.value || 'N/A'}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: '#6b7280', fontStyle: 'italic' }}>ไม่มีข้อมูลด้านสังคม</p>
+          )}
         </div>
 
         {/* Governance Data */}
         <div style={cardStyle}>
           <h2 style={sectionTitleStyle}>
             <Scale size={20} color="#f59e0b" />
-            Governance Data
+            ข้อมูลด้านการกำกับดูแล (Governance)
           </h2>
-          <div style={dataGridStyle}>
-            {Object.entries(governanceData).map(([key, value]) => (
-              <div key={key} style={dataItemStyle}>
-                <p style={dataLabelStyle}>{key.replace(/_/g, ' ')}</p>
-                <p style={dataValueStyle}>{String(value) || 'N/A'}</p>
-              </div>
-            ))}
-          </div>
+          {governanceData.length > 0 ? (
+            <div style={dataGridStyle}>
+              {governanceData.map((data) => (
+                <div key={data.data_id} style={dataItemStyle}>
+                  <p style={dataLabelStyle}>{data.issue_name || `Issue ${data.issue_id}`}</p>
+                  <p style={dataValueStyle}>{data.value || 'N/A'}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: '#6b7280', fontStyle: 'italic' }}>ไม่มีข้อมูลด้านการกำกับดูแล</p>
+          )}
         </div>
       </div>
     </div>
