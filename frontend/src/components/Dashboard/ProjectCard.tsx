@@ -27,14 +27,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     const status = getDisplayStatus();
     switch (status) {
       case 'PENDING':
-      case 'PROCESSING':
         return <Clock size={16} color="#f59e0b" />;
       case 'PASSED':
         return <CheckCircle size={16} color="#10b981" />;
       case 'FAILED':
         return <XCircle size={16} color="#ef4444" />;
-      case 'COMPLETED':
-        return <CheckCircle size={16} color="#6b7280" />;
       default:
         return <Clock size={16} color="#6b7280" />;
     }
@@ -44,14 +41,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     const status = getDisplayStatus();
     switch (status) {
       case 'PENDING':
-      case 'PROCESSING':
         return '#f59e0b';
       case 'PASSED':
         return '#10b981';
       case 'FAILED':
         return '#ef4444';
-      case 'COMPLETED':
-        return '#6b7280';
       default:
         return '#6b7280';
     }
@@ -61,14 +55,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     const status = getDisplayStatus();
     switch (status) {
       case 'PENDING':
-      case 'PROCESSING':
         return '#fef3c7';
       case 'PASSED':
         return '#dcfce7';
       case 'FAILED':
         return '#fee2e2';
-      case 'COMPLETED':
-        return '#f3f4f6';
       default:
         return '#f3f4f6';
     }
@@ -220,8 +211,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    backgroundColor: '#3b82f6',
-    color: 'white'
+    backgroundColor: '#A9DEF9',
+    color: 'white#3b82f6'
   };
 
   // Get pillar scores from evaluation

@@ -337,7 +337,7 @@ const ProjectDetails: React.FC = () => {
     padding: "12px",
     backgroundColor: "#f9fafb",
     borderRadius: "8px",
-    borderLeft: "4px solid #3b82f6",
+    borderLeft: "4px solid #A9DEF9",
   };
 
   const dataLabelStyle: React.CSSProperties = {
