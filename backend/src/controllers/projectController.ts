@@ -230,17 +230,17 @@ export class ProjectController {
         });
       }
 
-      await ProjectService.resetProjectSequence();
+      await ProjectService.resetAllSequences();
       
       res.status(200).json({
         success: true,
-        message: 'Project sequence reset successfully'
+        message: 'All project sequences reset successfully'
       });
     } catch (error) {
       console.error('Reset sequence error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to reset sequence'
+        message: 'Failed to reset sequences'
       });
     }
   }
@@ -261,6 +261,32 @@ export class ProjectController {
         success: false,
         message: 'Failed to check sequence',
         error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      });
+    }
+  }
+
+  // เพิ่ม endpoint สำหรับ reset ทุก sequence (development only)
+  static async resetAllSequences(req: Request, res: Response) {
+    try {
+      // ตรวจสอบว่าเป็น development environment
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(403).json({
+          success: false,
+          message: 'This endpoint is only available in development mode'
+        });
+      }
+
+      await ProjectService.resetAllSequences();
+      
+      res.status(200).json({
+        success: true,
+        message: 'All sequences reset successfully'
+      });
+    } catch (error) {
+      console.error('Reset all sequences error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reset sequences'
       });
     }
   }

@@ -251,13 +251,11 @@ export class ProjectService {
   // เพิ่ม function สำหรับ reset sequence
   static async resetProjectSequence(): Promise<void> {
     try {
-      // Reset sequence ให้เป็นค่าที่ถูกต้องตาม MAX(project_id)
-      await query(
-        `SELECT setval('projects_project_id_seq', COALESCE((SELECT MAX(project_id) FROM projects), 0) + 1)`
-      );
-      console.log('Project sequence reset successfully');
+      // ใช้ resetAllSequences แทน
+      await this.resetAllSequences();
+      console.log('All project-related sequences reset successfully');
     } catch (error) {
-      console.error('Error resetting project sequence:', error);
+      console.error('Error resetting project sequences:', error);
       throw error;
     }
   }
@@ -284,22 +282,73 @@ export class ProjectService {
   // เพิ่ม function สำหรับตรวจสอบสถานะ sequence
   static async getSequenceInfo(): Promise<any> {
     try {
-      const sequenceResult = await query('SELECT last_value FROM projects_project_id_seq');
-      const maxIdResult = await query('SELECT COALESCE(MAX(project_id), 0) as max_id FROM projects');
-      const countResult = await query('SELECT COUNT(*) as count FROM projects');
+      const projectsResult = await query('SELECT last_value FROM projects_project_id_seq');
+      const projectsMaxResult = await query('SELECT COALESCE(MAX(project_id), 0) as max_id FROM projects');
+      const projectsCountResult = await query('SELECT COUNT(*) as count FROM projects');
       
-      const currentSequence = parseInt(sequenceResult.rows[0].last_value);
-      const maxProjectId = parseInt(maxIdResult.rows[0].max_id);
-      const totalProjects = parseInt(countResult.rows[0].count);
+      const dataResult = await query('SELECT last_value FROM project_data_data_id_seq');
+      const dataMaxResult = await query('SELECT COALESCE(MAX(data_id), 0) as max_id FROM project_data');
+      const dataCountResult = await query('SELECT COUNT(*) as count FROM project_data');
       
       return {
-        current_sequence: currentSequence,
-        max_project_id: maxProjectId,
-        total_projects: totalProjects,
-        gap: currentSequence - maxProjectId
+        projects: {
+          current_sequence: parseInt(projectsResult.rows[0].last_value),
+          max_project_id: parseInt(projectsMaxResult.rows[0].max_id),
+          total_projects: parseInt(projectsCountResult.rows[0].count),
+          gap: parseInt(projectsResult.rows[0].last_value) - parseInt(projectsMaxResult.rows[0].max_id)
+        },
+        project_data: {
+          current_sequence: parseInt(dataResult.rows[0].last_value),
+          max_data_id: parseInt(dataMaxResult.rows[0].max_id),
+          total_data: parseInt(dataCountResult.rows[0].count),
+          gap: parseInt(dataResult.rows[0].last_value) - parseInt(dataMaxResult.rows[0].max_id)
+        }
       };
     } catch (error) {
       console.error('Error getting sequence info:', error);
+      throw error;
+    }
+  }
+
+  // เพิ่ม function สำหรับ reset ทุก sequence ที่เกี่ยวข้อง
+  static async resetAllSequences(): Promise<void> {
+    try {
+      // Reset projects sequence
+      await query(
+        `SELECT setval('projects_project_id_seq', COALESCE((SELECT MAX(project_id) FROM projects), 0) + 1, false)`
+      );
+      
+      // Reset project_data sequence  
+      await query(
+        `SELECT setval('project_data_data_id_seq', COALESCE((SELECT MAX(data_id) FROM project_data), 0) + 1, false)`
+      );
+      
+      // Reset evaluation sequence (ถ้ามี)
+      await query(
+        `SELECT setval('evaluation_evaluation_id_seq', COALESCE((SELECT MAX(evaluation_id) FROM evaluation), 0) + 1, false)`
+      );
+      
+      // Reset pillar_scores sequence (ถ้ามี) 
+      await query(
+        `SELECT setval('pillar_scores_score_id_seq', COALESCE((SELECT MAX(score_id) FROM pillar_scores), 0) + 1, false)`
+      );
+      
+      console.log('All sequences reset successfully');
+    } catch (error) {
+      console.error('Error resetting sequences:', error);
+      throw error;
+    }
+  }
+
+  // เพิ่ม function สำหรับ reset sequence เฉพาะของ project_data
+  static async resetProjectDataSequence(): Promise<void> {
+    try {
+      await query(
+        `SELECT setval('project_data_data_id_seq', COALESCE((SELECT MAX(data_id) FROM project_data), 0) + 1, false)`
+      );
+      console.log('Project data sequence reset successfully');
+    } catch (error) {
+      console.error('Error resetting project data sequence:', error);
       throw error;
     }
   }
