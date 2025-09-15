@@ -158,7 +158,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
   // Determine if field should be numeric based on name patterns
   const isNumericField = (issueName: string): boolean => {
     const numericPatterns = [
-      'การปล่อยคาร์บอน',
+      'การปล่อยคาร์บอน Scope 1+2',
       'ปริมาณการใช้น้ำ',
       'เปอร์เซ็นต์การใช้พลังงานทดแทน',
       'การลงทุนด้านสิ่งแวดล้อม',
