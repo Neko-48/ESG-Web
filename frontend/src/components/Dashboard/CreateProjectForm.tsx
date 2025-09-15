@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { apiRequest } from '../../services/apiService';
+import { apiRequest, type ApiResponse } from '../../services/apiService';
 import type { CreateProjectFormData, KeyIssue } from '../../types/projectType';
 
 interface CreateProjectFormProps {
@@ -107,8 +107,8 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
       'การปฏิบัติในการรายงานความโปร่งใส': [
         'รายงานครบถ้วน ตรงเวลา และมีคุณภาพสูง',
         'รายงานครบถ้วนและตรงเวลา',
-        'รายงานครบถ้วนแต่ล่าช้าบางครั้ง',
-        'รายงานไม่ครบถ้วนหรือล่าช้าเป็นประจำ'
+        'รายงานตามกฎหมายกำหนด',
+        'การรายงานไม่ครบถ้วนหรือล่าช้าเป็นประจำ'
       ],
       // Data Protection and Governance - multiple possible names
       'คุณภาพการปกครองและการกำกับดูแล': [
@@ -176,7 +176,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
   useEffect(() => {
     const loadKeyIssues = async () => {
       try {
-        const response = await apiRequest('GET', '/projects/key-issues');
+        const response: ApiResponse<KeyIssue[]> = await apiRequest('GET', '/projects/key-issues');
         const issues = response.data.map((issue: KeyIssue) => {
           // Override input_type and dropdown_options based on issue name
           const dropdownOptions = getDropdownOptions(issue.name);
@@ -188,7 +188,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
             ...issue,
             input_type: dropdownOptions ? 'dropdown' : (isNumeric ? 'numeric' : 'text'),
             dropdown_options: dropdownOptions || []
-          };
+          } as KeyIssue;
         });
         
         setKeyIssues(issues);
@@ -279,8 +279,18 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       try {
+        console.log('Submitting project data:', {
+        ...formData,
+        project_data: formData.project_data.filter(data => data.value.trim())
+      });
         // All project data should be included (no filtering for empty values since all are required)
-        await apiRequest('POST', '/projects', formData);
+        await apiRequest('POST', '/projects', {
+          project_name: formData.project_name,
+          industry: formData.industry,
+          description: formData.description,
+          annual_revenue: formData.annual_revenue,
+          project_data: formData.project_data
+        });
         onProjectCreated();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสร้างโครงการ';
@@ -328,6 +338,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
             style={fieldStyle}
             value={currentValue}
             onChange={(e) => handleProjectDataChange(issue.issue_id, e.target.value)}
+            onWheel={(e) => e.currentTarget.blur()} // ปิดการทำงานของ scroll wheel
             placeholder={`กรอก${issue.name}`}
             disabled={isLoading}
             min="0"
@@ -590,6 +601,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onProjectCreated,
               }}
               value={formData.annual_revenue || ''}
               onChange={(e) => handleInputChange('annual_revenue', parseFloat(e.target.value) || 0)}
+              onWheel={(e) => e.currentTarget.blur()} // ปิดการทำงานของ scroll wheel
               placeholder="กรอกรายได้ต่อปีเป็นบาท"
               disabled={isLoading}
               min="0"

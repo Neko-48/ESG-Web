@@ -2,12 +2,23 @@ import { Request, Response } from 'express';
 import { ProjectService } from '../services/projectService';
 import { CreateProjectRequest } from '../types/projectType';
 
+// Helper function สำหรับจัดการ error message
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
 export class ProjectController {
   static async createProject(req: Request, res: Response) {
     try {
       const userId = (req as any).user.userId;
       const projectData: CreateProjectRequest = req.body;
       
+      console.log('Creating project for user:', userId);
+      console.log('Project data:', { ...projectData, project_data: `${projectData.project_data?.length || 0} items` });
+
       // Basic validation
       const { project_name, industry, project_data } = projectData;
       if (!project_name || !industry) {
@@ -26,15 +37,29 @@ export class ProjectController {
 
       // Validate project_data structure
       for (const data of project_data) {
-        if (!data.issue_id || data.value === undefined) {
+        if (!data.issue_id || data.value === undefined || data.value.trim() === '') {
           return res.status(400).json({
             success: false,
-            message: 'Each project data item must have issue_id and value'
+            message: 'Each project data item must have issue_id and non-empty value'
+          });
+        }
+      }
+
+      // Validate that all issue_ids exist
+      const keyIssues = await ProjectService.getKeyIssues();
+      const validIssueIds = new Set(keyIssues.map(issue => issue.issue_id));
+      
+      for (const data of project_data) {
+        if (!validIssueIds.has(data.issue_id)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid issue_id: ${data.issue_id}`
           });
         }
       }
 
       const project = await ProjectService.createProject(userId, projectData);
+      console.log('Project created successfully:', project.project_id);
       
       // Trigger evaluation (but it won't do any actual calculation)
       await ProjectService.triggerEvaluation(project.project_id);
@@ -46,9 +71,29 @@ export class ProjectController {
       });
     } catch (error) {
       console.error('Create project error:', error);
+      
+      const errorMessage = getErrorMessage(error);
+      
+      // Check if it's a foreign key constraint error
+      if (errorMessage.includes('foreign key constraint')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reference data provided'
+        });
+      }
+      
+      // Check if it's a duplicate key error
+      if (errorMessage.includes('duplicate key')) {
+        return res.status(409).json({
+          success: false,
+          message: 'Project already exists'
+        });
+      }
+      
       res.status(500).json({
         success: false,
-        message: 'Failed to create project'
+        message: 'Failed to create project',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       });
     }
   }
@@ -170,6 +215,52 @@ export class ProjectController {
       res.status(500).json({
         success: false,
         message: 'Failed to get project statistics'
+      });
+    }
+  }
+
+  // เพิ่ม endpoint สำหรับ reset sequence (development only)
+  static async resetSequence(req: Request, res: Response) {
+    try {
+      // ตรวจสอบว่าเป็น development environment
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(403).json({
+          success: false,
+          message: 'This endpoint is only available in development mode'
+        });
+      }
+
+      await ProjectService.resetProjectSequence();
+      
+      res.status(200).json({
+        success: true,
+        message: 'Project sequence reset successfully'
+      });
+    } catch (error) {
+      console.error('Reset sequence error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reset sequence'
+      });
+    }
+  }
+
+  // เพิ่ม endpoint สำหรับตรวจสอบ sequence
+  static async checkSequence(req: Request, res: Response) {
+    try {
+      const sequenceInfo = await ProjectService.getSequenceInfo();
+      
+      res.status(200).json({
+        success: true,
+        data: sequenceInfo
+      });
+    } catch (error) {
+      console.error('Check sequence error:', error);
+      const errorMessage = getErrorMessage(error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to check sequence',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       });
     }
   }

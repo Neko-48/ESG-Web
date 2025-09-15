@@ -12,8 +12,8 @@ export class ProjectService {
   static async createProject(userId: number, projectData: CreateProjectRequest): Promise<Project> {
     const { project_name, industry, annual_revenue, description, project_data } = projectData;
 
-    // Start transaction
-    const client = await query('BEGIN');
+    // Start transaction - แก้ไขการใช้ transaction
+    await query('BEGIN');
     
     try {
       // Insert project with annual revenue
@@ -25,24 +25,27 @@ export class ProjectService {
       );
 
       const project = projectResult.rows[0];
+      console.log('Created project:', project); // Debug log
 
       // Insert project data for each key issue
       if (project_data && project_data.length > 0) {
-        const insertDataPromises = project_data.map(data => 
-          query(
+        for (const data of project_data) {
+          console.log(`Inserting project_data: project_id=${project.project_id}, issue_id=${data.issue_id}, value=${data.value}`);
+          
+          await query(
             `INSERT INTO project_data (project_id, issue_id, value)
              VALUES ($1, $2, $3)`,
             [project.project_id, data.issue_id, data.value]
-          )
-        );
-        
-        await Promise.all(insertDataPromises);
+          );
+        }
       }
 
       await query('COMMIT');
+      console.log('Transaction committed successfully');
       return project;
 
     } catch (error) {
+      console.error('Transaction error:', error);
       await query('ROLLBACK');
       throw error;
     }
@@ -56,7 +59,7 @@ export class ProjectService {
         e.overall_score,
         e.status as evaluation_status
        FROM projects p
-       LEFT JOIN evaluations e ON p.project_id = e.project_id
+       LEFT JOIN evaluation e ON p.project_id = e.project_id
        WHERE p.user_id = $1
        ORDER BY p.submitted_at DESC`,
       [userId]
@@ -92,7 +95,7 @@ export class ProjectService {
         e.overall_score,
         e.status as evaluation_status
        FROM projects p
-       LEFT JOIN evaluations e ON p.project_id = e.project_id
+       LEFT JOIN evaluation e ON p.project_id = e.project_id
        WHERE p.project_id = $1 AND p.user_id = $2`,
       [projectId, userId]
     );
@@ -150,15 +153,26 @@ export class ProjectService {
   }
 
   static async deleteProject(projectId: number, userId: number): Promise<boolean> {
-    // Delete related data first (cascade should handle this, but explicit is better)
-    await query('DELETE FROM project_data WHERE project_id = $1', [projectId]);
+    // Start transaction for delete operation
+    await query('BEGIN');
     
-    const result = await query(
-      'DELETE FROM projects WHERE project_id = $1 AND user_id = $2',
-      [projectId, userId]
-    );
+    try {
+      // Delete related data first
+      await query('DELETE FROM project_data WHERE project_id = $1', [projectId]);
+      await query('DELETE FROM evaluation WHERE project_id = $1', [projectId]);
+      
+      const result = await query(
+        'DELETE FROM projects WHERE project_id = $1 AND user_id = $2',
+        [projectId, userId]
+      );
 
-    return (result?.rowCount ?? 0) > 0;
+      await query('COMMIT');
+      return (result?.rowCount ?? 0) > 0;
+      
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
   }
 
   static async getKeyIssues(): Promise<any[]> {
@@ -168,6 +182,7 @@ export class ProjectService {
        JOIN msci_standard ms ON ki.standard_id = ms.standard_id
        ORDER BY ki.pillar, ki.issue_id`
     );
+    
     // Process the results to extract input types and options from criteria
     return result.rows.map(row => {
       let input_type: 'dropdown' | 'numeric' | 'text' = 'text';
@@ -231,5 +246,61 @@ export class ProjectService {
     );
 
     return result.rows[0];
+  }
+
+  // เพิ่ม function สำหรับ reset sequence
+  static async resetProjectSequence(): Promise<void> {
+    try {
+      // Reset sequence ให้เป็นค่าที่ถูกต้องตาม MAX(project_id)
+      await query(
+        `SELECT setval('projects_project_id_seq', COALESCE((SELECT MAX(project_id) FROM projects), 0) + 1)`
+      );
+      console.log('Project sequence reset successfully');
+    } catch (error) {
+      console.error('Error resetting project sequence:', error);
+      throw error;
+    }
+  }
+
+  // เพิ่ม function สำหรับตรวจสอบและแก้ไข sequence หาก gap เกินไป
+  static async validateAndFixSequence(): Promise<void> {
+    try {
+      const sequenceResult = await query('SELECT last_value FROM projects_project_id_seq');
+      const maxIdResult = await query('SELECT COALESCE(MAX(project_id), 0) as max_id FROM projects');
+      
+      const currentSequence = parseInt(sequenceResult.rows[0].last_value);
+      const maxId = parseInt(maxIdResult.rows[0].max_id);
+      
+      // หากความต่างมากกว่า 5 ให้ reset sequence
+      if (currentSequence - maxId > 5) {
+        console.log(`Sequence gap detected: ${currentSequence - maxId}, resetting...`);
+        await this.resetProjectSequence();
+      }
+    } catch (error) {
+      console.error('Error validating sequence:', error);
+    }
+  }
+
+  // เพิ่ม function สำหรับตรวจสอบสถานะ sequence
+  static async getSequenceInfo(): Promise<any> {
+    try {
+      const sequenceResult = await query('SELECT last_value FROM projects_project_id_seq');
+      const maxIdResult = await query('SELECT COALESCE(MAX(project_id), 0) as max_id FROM projects');
+      const countResult = await query('SELECT COUNT(*) as count FROM projects');
+      
+      const currentSequence = parseInt(sequenceResult.rows[0].last_value);
+      const maxProjectId = parseInt(maxIdResult.rows[0].max_id);
+      const totalProjects = parseInt(countResult.rows[0].count);
+      
+      return {
+        current_sequence: currentSequence,
+        max_project_id: maxProjectId,
+        total_projects: totalProjects,
+        gap: currentSequence - maxProjectId
+      };
+    } catch (error) {
+      console.error('Error getting sequence info:', error);
+      throw error;
+    }
   }
 }
